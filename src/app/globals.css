@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+:root {
+  --color-bone: #F5F2EC;
+  --color-crimson: #8B1E24;
+  --color-charcoal: #1A1A1A;
+}
+
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+}
