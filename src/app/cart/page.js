@@ -7,6 +7,34 @@ export default function Cart() {
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
+  async function handleCheckout() {
+    const res = await fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: total }),
+    });
+
+    const order = await res.json();
+
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: order.currency,
+      name: "Nowhen",
+      description: "Order Payment",
+      order_id: order.id,
+      handler: function (response) {
+        alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
+      },
+      theme: {
+        color: "#8B1E24",
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  }
+
   return (
     <>
       <Navbar />
@@ -37,6 +65,7 @@ export default function Cart() {
             </div>
 
             <button
+              onClick={handleCheckout}
               className="mt-6 w-full py-3 text-sm tracking-wide"
               style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
             >
