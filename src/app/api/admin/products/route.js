@@ -5,7 +5,7 @@ const sql = neon(process.env.DATABASE_URL);
 
 export async function GET() {
   try {
-    const products = await sql`SELECT * FROM products ORDER BY created_at DESC`;
+    const products = await sql`SELECT * FROM products ORDER BY sort_order ASC NULLS LAST, created_at DESC`;
     return NextResponse.json(products);
   } catch (error) {
     console.error(error);
@@ -15,15 +15,19 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { name, price, description, images } = await req.json();
+    const { name, price, sizes, images } = await req.json();
 
     if (!name || !price || !images || images.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // New products go to the end of the order
+    const maxOrder = await sql`SELECT COALESCE(MAX(sort_order), 0) AS max FROM products`;
+    const nextOrder = maxOrder[0].max + 1;
+
     const result = await sql`
-      INSERT INTO products (name, price, description, images, image)
-      VALUES (${name}, ${price}, ${description || ""}, ${images}, ${images[0]})
+      INSERT INTO products (name, price, sizes, images, image, sort_order)
+      VALUES (${name}, ${price}, ${sizes || []}, ${images}, ${images[0]}, ${nextOrder})
       RETURNING *
     `;
 

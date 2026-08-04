@@ -5,11 +5,9 @@ export default function About() {
     <>
       <Navbar />
       <main
-        className="min-h-screen px-8 py-16 flex flex-col items-center"
+        className="min-h-screen px-8 pt-32 pb-16 flex flex-col items-center"
         style={{ backgroundColor: "#000000", color: "#F5F2EC" }}
       >
-        <h1 className="text-3xl tracking-widest mb-8">ABOUT</h1>
-
         <div className="max-w-xl text-center leading-relaxed opacity-90">
           <p className="mb-6">
             Nowhen isn't about time. It's about moments that stay —

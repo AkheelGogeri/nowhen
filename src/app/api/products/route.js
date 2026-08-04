@@ -5,7 +5,7 @@ const sql = neon(process.env.DATABASE_URL);
 
 export async function GET() {
   try {
-    const products = await sql`SELECT * FROM products ORDER BY created_at DESC`;
+    const products = await sql`SELECT * FROM products ORDER BY sort_order ASC NULLS LAST, created_at DESC`;
     return NextResponse.json(products);
   } catch (error) {
     console.error(error);

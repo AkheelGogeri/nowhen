@@ -5,11 +5,9 @@ export default function Contact() {
     <>
       <Navbar />
       <main
-        className="min-h-screen px-8 py-16 flex flex-col items-center"
+        className="min-h-screen px-8 pt-32 pb-16 flex flex-col items-center"
         style={{ backgroundColor: "#000000", color: "#F5F2EC" }}
       >
-        <h1 className="text-3xl tracking-widest mb-8">CONTACT</h1>
-
         <div className="max-w-md text-center opacity-90">
           <p className="mb-4">Questions, order issues, or anything else — reach out:</p>
           <p className="mb-2">

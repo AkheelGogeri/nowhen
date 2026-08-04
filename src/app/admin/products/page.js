@@ -2,59 +2,32 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-export default function AdminProducts() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+const SIZE_OPTIONS = ["S", "M", "L", "XL", "XXL"];
 
-  const [editingId, setEditingId] = useState(null);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
+function ProductModal({ product, onClose, onSaved }) {
+  const isEditing = Boolean(product);
+
+  const [name, setName] = useState(product?.name || "");
+  const [price, setPrice] = useState(product?.price || "");
+  const [sizes, setSizes] = useState(product?.sizes || []);
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
-  const [existingImages, setExistingImages] = useState([]);
+  const [existingImages, setExistingImages] = useState(
+    product?.images || [product?.image].filter(Boolean) || []
+  );
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  async function fetchProducts() {
-    setLoading(true);
-    const res = await fetch("/api/admin/products");
-    const data = await res.json();
-    setProducts(data);
-    setLoading(false);
+  function toggleSize(size) {
+    setSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
+    );
   }
 
   function handleFileChange(e) {
     const selected = Array.from(e.target.files);
     setFiles(selected);
     setPreviews(selected.map((f) => URL.createObjectURL(f)));
-  }
-
-  function startEdit(product) {
-    setEditingId(product.id);
-    setName(product.name);
-    setPrice(product.price);
-    setDescription(product.description || "");
-    setExistingImages(product.images || [product.image].filter(Boolean));
-    setFiles([]);
-    setPreviews([]);
-    setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setName("");
-    setPrice("");
-    setDescription("");
-    setFiles([]);
-    setPreviews([]);
-    setExistingImages([]);
-    setError("");
   }
 
   async function handleSubmit(e) {
@@ -70,7 +43,6 @@ export default function AdminProducts() {
     setUploading(true);
 
     try {
-      // Upload any newly selected files
       let uploadedUrls = [];
       for (const file of files) {
         const formData = new FormData();
@@ -84,12 +56,10 @@ export default function AdminProducts() {
         uploadedUrls.push(data.url);
       }
 
-      // If new files were uploaded, they replace existing images.
-      // Otherwise, keep the existing images as-is (edit mode with no new files selected).
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : existingImages;
 
-      const url = editingId ? `/api/admin/products/${editingId}` : "/api/admin/products";
-      const method = editingId ? "PUT" : "POST";
+      const url = isEditing ? `/api/admin/products/${product.id}` : "/api/admin/products";
+      const method = isEditing ? "PUT" : "POST";
 
       const saveRes = await fetch(url, {
         method,
@@ -97,15 +67,15 @@ export default function AdminProducts() {
         body: JSON.stringify({
           name,
           price: Number(price),
-          description,
+          sizes,
           images: finalImages,
         }),
       });
 
       if (!saveRes.ok) throw new Error("Failed to save product");
 
-      cancelEdit();
-      fetchProducts();
+      onSaved();
+      onClose();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -113,39 +83,31 @@ export default function AdminProducts() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!confirm("Delete this product?")) return;
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-    if (editingId === id) cancelEdit();
-    fetchProducts();
-  }
-
   return (
-    <main
-      className="min-h-screen px-8 py-12"
-      style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC" }}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
+      onClick={onClose}
     >
-      <div className="flex items-center justify-between mb-10">
-        <h1
-          className="text-2xl tracking-[0.2em] uppercase"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Products
-        </h1>
-        <Link href="/admin" className="text-xs tracking-[0.2em] uppercase opacity-60 hover:opacity-100">
-          ← Back to Dashboard
-        </Link>
-      </div>
-
-      {/* Add / Edit Product Form */}
       <form
         onSubmit={handleSubmit}
-        className="mb-14 p-6 rounded border flex flex-col gap-4 max-w-xl"
-        style={{ borderColor: editingId ? "#8B1E24" : "#333" }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 rounded flex flex-col gap-4"
+        style={{ backgroundColor: "#1A1A1A", border: "1px solid #333" }}
       >
-        <h2 className="text-sm tracking-[0.2em] uppercase mb-2">
-          {editingId ? "Edit Product" : "Add Product"}
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm tracking-[0.2em] uppercase" style={{ color: "#F5F2EC" }}>
+            {isEditing ? "Edit Product" : "Add Product"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-lg leading-none"
+            style={{ color: "#F5F2EC" }}
+          >
+            ✕
+          </button>
+        </div>
 
         <input
           type="text"
@@ -153,7 +115,7 @@ export default function AdminProducts() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="px-4 py-3 rounded outline-none text-sm"
-          style={{ backgroundColor: "#1A1A1A", border: "1px solid #333" }}
+          style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
         />
 
         <input
@@ -162,67 +124,64 @@ export default function AdminProducts() {
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           className="px-4 py-3 rounded outline-none text-sm"
-          style={{ backgroundColor: "#1A1A1A", border: "1px solid #333" }}
-        />
-
-        <textarea
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          className="px-4 py-3 rounded outline-none text-sm"
-          style={{ backgroundColor: "#1A1A1A", border: "1px solid #333" }}
+          style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
         />
 
         <div>
-          <label className="text-xs tracking-[0.15em] uppercase opacity-70 block mb-2">
-            Product Images {editingId && "(leave empty to keep current images)"}
+          <label
+            className="text-xs tracking-[0.15em] uppercase opacity-70 block mb-2"
+            style={{ color: "#F5F2EC" }}
+          >
+            Available Sizes
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {SIZE_OPTIONS.map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => toggleSize(size)}
+                className="px-4 py-2 text-xs tracking-wide rounded transition-colors"
+                style={{
+                  backgroundColor: sizes.includes(size) ? "#8B1E24" : "#0D0D0D",
+                  color: "#F5F2EC",
+                  border: "1px solid #333",
+                }}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label
+            className="text-xs tracking-[0.15em] uppercase opacity-70 block mb-2"
+            style={{ color: "#F5F2EC" }}
+          >
+            Product Images {isEditing && "(leave empty to keep current)"}
           </label>
           <label
             className="inline-flex items-center gap-2 px-5 py-3 text-xs tracking-[0.2em] uppercase cursor-pointer transition-opacity hover:opacity-80"
             style={{ border: "1px solid #F5F2EC", color: "#F5F2EC" }}
           >
             {files.length > 0 ? `${files.length} file(s) selected` : "Choose Images"}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-            />
+            <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
           </label>
         </div>
 
-        {/* New file previews */}
         {previews.length > 0 && (
           <div className="flex gap-3 flex-wrap">
             {previews.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt="preview"
-                className="w-20 h-20 object-cover rounded"
-                style={{ border: "1px solid #333" }}
-              />
+              <img key={i} src={src} alt="preview" className="w-16 h-16 object-cover rounded" style={{ border: "1px solid #333" }} />
             ))}
           </div>
         )}
 
-        {/* Existing images (edit mode, shown only if no new files chosen) */}
-        {editingId && previews.length === 0 && existingImages.length > 0 && (
-          <div>
-            <p className="text-xs opacity-50 mb-2">Current images:</p>
-            <div className="flex gap-3 flex-wrap">
-              {existingImages.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt="current"
-                  className="w-20 h-20 object-cover rounded"
-                  style={{ border: "1px solid #333" }}
-                />
-              ))}
-            </div>
+        {isEditing && previews.length === 0 && existingImages.length > 0 && (
+          <div className="flex gap-3 flex-wrap">
+            {existingImages.map((src, i) => (
+              <img key={i} src={src} alt="current" className="w-16 h-16 object-cover rounded" style={{ border: "1px solid #333" }} />
+            ))}
           </div>
         )}
 
@@ -232,53 +191,137 @@ export default function AdminProducts() {
           </p>
         )}
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={uploading}
-            className="py-3 px-6 text-xs tracking-[0.25em] uppercase font-semibold"
-            style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
-          >
-            {uploading ? "Saving..." : editingId ? "Update Product" : "Add Product"}
-          </button>
-
-          {editingId && (
-            <button
-              type="button"
-              onClick={cancelEdit}
-              className="py-3 px-6 text-xs tracking-[0.25em] uppercase"
-              style={{ border: "1px solid #333", color: "#F5F2EC" }}
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+        <button
+          type="submit"
+          disabled={uploading}
+          className="py-3 text-xs tracking-[0.25em] uppercase font-semibold rounded"
+          style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
+        >
+          {uploading ? "Saving..." : isEditing ? "Update Product" : "Add Product"}
+        </button>
       </form>
+    </div>
+  );
+}
 
-      {/* Existing Products */}
-      <h2 className="text-sm tracking-[0.2em] uppercase mb-6">Existing Products</h2>
+export default function AdminProducts() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  async function fetchProducts() {
+    setLoading(true);
+    const res = await fetch("/api/admin/products");
+    const data = await res.json();
+    setProducts(data);
+    setLoading(false);
+  }
+
+  function openAddModal() {
+    setEditingProduct(null);
+    setModalOpen(true);
+  }
+
+  function openEditModal(product) {
+    setEditingProduct(product);
+    setModalOpen(true);
+  }
+
+  async function handleDelete(id) {
+    if (!confirm("Delete this product?")) return;
+    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    fetchProducts();
+  }
+
+  function handleDragStart(index) {
+    setDragIndex(index);
+  }
+
+  function handleDragOver(e, index) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+
+    const reordered = [...products];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(index, 0, moved);
+    setDragIndex(index);
+    setProducts(reordered);
+  }
+
+  async function handleDragEnd() {
+    setDragIndex(null);
+    const orderedIds = products.map((p) => p.id);
+    await fetch("/api/admin/products/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds }),
+    });
+  }
+
+  return (
+    <main className="min-h-screen px-8 py-12" style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC" }}>
+      <div className="flex items-center justify-between mb-10">
+        <h1 className="text-2xl tracking-[0.2em] uppercase" style={{ fontFamily: "var(--font-display)" }}>
+          Products
+        </h1>
+        <Link href="/admin" className="text-xs tracking-[0.2em] uppercase opacity-60 hover:opacity-100">
+          ← Back to Dashboard
+        </Link>
+      </div>
+
+      <button
+        onClick={openAddModal}
+        className="mb-10 px-6 py-3 text-xs tracking-[0.25em] uppercase font-semibold rounded"
+        style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
+      >
+        + Add Product
+      </button>
+
+      <h2 className="text-sm tracking-[0.2em] uppercase mb-2">Existing Products</h2>
+      <p className="text-xs opacity-50 mb-6">Drag to reorder how products appear in the shop.</p>
 
       {loading ? (
         <p className="text-xs opacity-60">Loading...</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {products.map((product) => (
-            <div key={product.id} className="p-4 rounded border" style={{ borderColor: "#333" }}>
-              <div className="flex gap-2 mb-3 overflow-x-auto">
-                {(product.images || [product.image]).filter(Boolean).map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt={product.name}
-                    className="w-16 h-16 object-cover rounded flex-shrink-0"
-                  />
-                ))}
+        <div className="flex flex-col gap-3 max-w-2xl">
+          {products.map((product, index) => (
+            <div
+              key={product.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              className="flex items-center gap-4 p-3 rounded cursor-grab active:cursor-grabbing"
+              style={{
+                backgroundColor: dragIndex === index ? "#222" : "#1A1A1A",
+                border: "1px solid #333",
+              }}
+            >
+              <span className="opacity-40 text-lg select-none">⠿</span>
+
+              <img
+                src={(product.images && product.images[0]) || product.image}
+                alt={product.name}
+                className="w-14 h-14 object-cover rounded flex-shrink-0"
+              />
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{product.name}</p>
+                <p className="text-xs opacity-60">
+                  ₹{product.price}
+                  {product.sizes && product.sizes.length > 0 && ` · ${product.sizes.join(", ")}`}
+                </p>
               </div>
-              <p className="text-sm mb-1">{product.name}</p>
-              <p className="text-xs opacity-60 mb-3">₹{product.price}</p>
-              <div className="flex gap-4">
+
+              <div className="flex gap-4 flex-shrink-0">
                 <button
-                  onClick={() => startEdit(product)}
+                  onClick={() => openEditModal(product)}
                   className="text-xs tracking-[0.15em] uppercase"
                   style={{ color: "#F5F2EC" }}
                 >
@@ -295,6 +338,14 @@ export default function AdminProducts() {
             </div>
           ))}
         </div>
+      )}
+
+      {modalOpen && (
+        <ProductModal
+          product={editingProduct}
+          onClose={() => setModalOpen(false)}
+          onSaved={fetchProducts}
+        />
       )}
     </main>
   );

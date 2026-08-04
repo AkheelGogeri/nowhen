@@ -3,7 +3,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "./Navbar";
 
-const heroImages = ["/img1.jpeg", "/img4.png"];
+const heroImages = [
+  { desktop: "/img1.jpeg", mobile: "/img1-mobile.png" },
+  { desktop: "/img3.png", mobile: "/img2-mobile.png" },
+];
 
 export default function Home() {
   const [currentImage, setCurrentImage] = useState(0);
@@ -30,13 +33,21 @@ export default function Home() {
         >
           {heroImages.map((img) => (
             <div
-              key={img}
-              className="h-full bg-cover bg-center flex-shrink-0"
-              style={{
-                width: `${100 / heroImages.length}%`,
-                backgroundImage: `url('${img}')`,
-              }}
-            />
+              key={img.desktop}
+              className="relative h-full flex-shrink-0"
+              style={{ width: `${100 / heroImages.length}%` }}
+            >
+              {/* Mobile image */}
+              <div
+                className="absolute inset-0 bg-cover bg-center block md:hidden"
+                style={{ backgroundImage: `url('${img.mobile}')` }}
+              />
+              {/* Desktop image */}
+              <div
+                className="absolute inset-0 bg-cover bg-center hidden md:block"
+                style={{ backgroundImage: `url('${img.desktop}')` }}
+              />
+            </div>
           ))}
         </div>
 
