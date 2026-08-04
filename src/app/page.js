@@ -1,23 +1,51 @@
+"use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "./Navbar";
 
+const heroImages = ["/img1.jpeg", "/img4.png"];
+
 export default function Home() {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
       <Navbar />
       <main className="relative min-h-screen flex flex-col justify-end overflow-hidden">
-        {/* Full-bleed background image */}
+        {/* Sliding track — all images side by side, track shifts left */}
         <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/img1.jpeg')" }}
-        />
+          className="absolute inset-0 flex transition-transform ease-in-out"
+          style={{
+            width: `${heroImages.length * 100}%`,
+            transform: `translateX(-${currentImage * (100 / heroImages.length)}%)`,
+            transitionDuration: "900ms",
+          }}
+        >
+          {heroImages.map((img) => (
+            <div
+              key={img}
+              className="h-full bg-cover bg-center flex-shrink-0"
+              style={{
+                width: `${100 / heroImages.length}%`,
+                backgroundImage: `url('${img}')`,
+              }}
+            />
+          ))}
+        </div>
 
-        {/* Dark overlay */}
+        {/* Dark gradient overlay */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(13,13,13,0) 0%, rgba(13,13,13,0) 55%, rgba(13,13,13,0.85) 90%, rgba(13,13,13,0.97) 100%)",
+              "linear-gradient(to bottom, rgba(13,13,13,0) 0%, rgba(13,13,13,0) 45%, rgba(13,13,13,0.85) 88%, rgba(13,13,13,0.97) 100%)",
           }}
         />
 
@@ -46,6 +74,36 @@ export default function Home() {
               style={{ backgroundColor: "#F5F2EC" }}
             />
           </Link>
+        </div>
+
+        {/* Slideshow dots indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImage(index)}
+              aria-label={`Go to slide ${index + 1}`}
+              className="h-2 rounded-full transition-all duration-300"
+              style={{
+                backgroundColor:
+                  index === currentImage ? "#F5F2EC" : "rgba(245,242,236,0.3)",
+                width: index === currentImage ? "24px" : "8px",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Small circular brand mark, bottom-left */}
+        <div
+          className="absolute bottom-8 left-8 z-10 flex items-center justify-center px-3 h-10 rounded-full border"
+          style={{ borderColor: "rgba(245,242,236,0.4)", color: "#F5F2EC" }}
+        >
+          <span
+            className="text-sm tracking-[0.15em]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            N<span style={{ color: "#8B1E24" }}>|</span>W
+          </span>
         </div>
       </main>
 
