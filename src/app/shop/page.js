@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../Navbar";
 import { useCart } from "../CartContext";
 
@@ -8,6 +9,8 @@ function ProductCard({ product, onAddToCart }) {
     ? product.images
     : [product.image]
   ).filter(Boolean);
+
+  const router = useRouter();
 
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -42,10 +45,11 @@ function ProductCard({ product, onAddToCart }) {
   return (
     <div className="flex flex-col items-center w-full max-w-xs mx-auto">
       <div
-        className="relative w-full aspect-[4/5] rounded overflow-hidden group"
+        className="relative w-full aspect-[4/5] rounded overflow-hidden group cursor-pointer"
         style={{ backgroundColor: "#111" }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
+        onClick={() => router.push(`/shop/${product.id}`)}
       >
         {images.map((img, i) => (
           <img

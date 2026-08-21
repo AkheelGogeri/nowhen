@@ -6,12 +6,16 @@ const CartContext = createContext();
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
 
-  function addToCart(product) {
-    setCart((prev) => [...prev, product]);
+  function addToCart(product, size = null) {
+    setCart((prev) => [...prev, { ...product, selectedSize: size, cartId: `${product.id}-${size}-${Date.now()}` }]);
+  }
+
+  function removeFromCart(cartId) {
+    setCart((prev) => prev.filter((item) => item.cartId !== cartId));
   }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart }}>
       {children}
     </CartContext.Provider>
   );

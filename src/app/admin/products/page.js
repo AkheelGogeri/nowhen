@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { compressImage } from "@/lib/compressImage";
 
 const SIZE_OPTIONS = ["S", "M", "L", "XL", "XXL"];
 
@@ -33,20 +34,21 @@ function ProductModal({ product, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-
+  
     const hasImages = files.length > 0 || existingImages.length > 0;
     if (!name || !price || !hasImages) {
       setError("Name, price, and at least one image are required.");
       return;
     }
-
+  
     setUploading(true);
-
+  
     try {
       let uploadedUrls = [];
       for (const file of files) {
+        const compressed = await compressImage(file);
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressed);
         const res = await fetch("/api/admin/upload", {
           method: "POST",
           body: formData,

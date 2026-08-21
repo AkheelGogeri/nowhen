@@ -3,53 +3,90 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "./Navbar";
 
-const heroImages = [
-  { desktop: "/img1.jpeg", mobile: "/img1-mobile.png" },
-  { desktop: "/img3.png", mobile: "/img2-mobile.png" },
-];
-
 export default function Home() {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setProducts(data.slice(0, 8));
+        }
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      }
+    }
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const res = await fetch("/api/settings");
+      const data = await res.json();
+      setSettings(data);
+      setLoading(false);
+    }
+    fetchSettings();
+  }, []);
+
+  const heroSlides = settings?.hero_slides || [];
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+      setCurrentImage((prev) => (prev + 1) % heroSlides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [heroSlides.length]);
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#000" }}>
+          <p className="text-sm opacity-40" style={{ color: "#F5F2EC" }}>Loading...</p>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
       <main className="relative min-h-screen flex flex-col justify-end overflow-hidden">
         {/* Sliding track — all images side by side, track shifts left */}
-        <div
-          className="absolute inset-0 flex transition-transform ease-in-out"
-          style={{
-            width: `${heroImages.length * 100}%`,
-            transform: `translateX(-${currentImage * (100 / heroImages.length)}%)`,
-            transitionDuration: "900ms",
-          }}
-        >
-          {heroImages.map((img) => (
-            <div
-              key={img.desktop}
-              className="relative h-full flex-shrink-0"
-              style={{ width: `${100 / heroImages.length}%` }}
-            >
-              {/* Mobile image */}
+        {heroSlides.length > 0 && (
+          <div
+            className="absolute inset-0 flex transition-transform ease-in-out"
+            style={{
+              width: `${heroSlides.length * 100}%`,
+              transform: `translateX(-${currentImage * (100 / heroSlides.length)}%)`,
+              transitionDuration: "900ms",
+            }}
+          >
+            {heroSlides.map((slide, i) => (
               <div
-                className="absolute inset-0 bg-cover bg-center block md:hidden"
-                style={{ backgroundImage: `url('${img.mobile}')` }}
-              />
-              {/* Desktop image */}
-              <div
-                className="absolute inset-0 bg-cover bg-center hidden md:block"
-                style={{ backgroundImage: `url('${img.desktop}')` }}
-              />
-            </div>
-          ))}
-        </div>
+                key={i}
+                className="relative h-full flex-shrink-0"
+                style={{ width: `${100 / heroSlides.length}%` }}
+              >
+                <div
+                  className="absolute inset-0 bg-cover bg-center block md:hidden"
+                  style={{ backgroundImage: `url('${slide.mobile}')` }}
+                />
+                <div
+                  className="absolute inset-0 bg-cover bg-center hidden md:block"
+                  style={{ backgroundImage: `url('${slide.desktop}')` }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Dark gradient overlay */}
         <div
@@ -69,7 +106,7 @@ export default function Home() {
             className="text-sm tracking-[0.4em] uppercase mb-4"
             style={{ color: "#F5F2EC" }}
           >
-            New Collection Launched
+            {settings?.collection_text || "New Collection Launched"}
           </p>
 
           <Link
@@ -88,21 +125,23 @@ export default function Home() {
         </div>
 
         {/* Slideshow dots indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-          {heroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImage(index)}
-              aria-label={`Go to slide ${index + 1}`}
-              className="h-2 rounded-full transition-all duration-300"
-              style={{
-                backgroundColor:
-                  index === currentImage ? "#F5F2EC" : "rgba(245,242,236,0.3)",
-                width: index === currentImage ? "24px" : "8px",
-              }}
-            />
-          ))}
-        </div>
+        {heroSlides.length > 1 && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+            {heroSlides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImage(index)}
+                aria-label={`Go to slide ${index + 1}`}
+                className="h-2 rounded-full transition-all duration-300"
+                style={{
+                  backgroundColor:
+                    index === currentImage ? "#F5F2EC" : "rgba(245,242,236,0.3)",
+                  width: index === currentImage ? "24px" : "8px",
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Small circular brand mark, bottom-left */}
         <div
@@ -118,13 +157,13 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Moving banner — WEAR THE MOMENT */}
+      {/* Moving banner */}
       <div
         className="w-full overflow-hidden py-4 border-y"
         style={{ backgroundColor: "#0D0D0D", borderColor: "#333" }}
       >
         <div className="marquee-track flex whitespace-nowrap w-max">
-          {Array(8).fill("WEAR THE MOMENT").map((text, i) => (
+          {Array(8).fill(settings?.marquee_text || "WEAR THE MOMENT").map((text, i) => (
             <span
               key={i}
               className="mx-8 text-sm tracking-[0.4em] font-semibold"
@@ -135,8 +174,52 @@ export default function Home() {
           ))}
         </div>
       </div>
+      
+      {/* Latest Arrivals */}
+      {products.length > 0 && (
+        <section className="py-16 px-6 md:px-10" style={{ backgroundColor: "#000" }}>
+          <h2
+            className="text-xl md:text-2xl tracking-[0.2em] uppercase text-center mb-10"
+            style={{ color: "#F5F2EC", fontFamily: "var(--font-display)" }}
+          >
+            Latest Arrivals
+          </h2>
+      
+          <div className="max-w-6xl mx-auto overflow-x-auto scrollbar-hide">
+            <div className="flex gap-5 pb-2" style={{ width: "max-content" }}>
+              {products.map((product) => {
+                const image = (product.images && product.images[0]) || product.image;
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/shop/${product.id}`}
+                    className="flex-shrink-0 w-48 md:w-56 group"
+                  >
+                    <div
+                      className="relative w-full aspect-[4/5] rounded overflow-hidden mb-3"
+                      style={{ backgroundColor: "#111" }}
+                    >
+                      <img
+                        src={image}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <p className="text-xs tracking-wide" style={{ color: "#F5F2EC" }}>
+                      {product.name}
+                    </p>
+                    <p className="text-sm font-semibold mt-1" style={{ color: "#8B1E24" }}>
+                      ₹{product.price}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}      
 
-      {/* Static banner — OUTSIDE OF TIME */}
+      {/* Static banner */}
       <div
         className="w-full py-6 flex items-center justify-center"
         style={{ backgroundColor: "#1A1A1A" }}
@@ -145,7 +228,7 @@ export default function Home() {
           className="text-sm md:text-base tracking-[0.5em] uppercase font-semibold"
           style={{ color: "#8B1E24" }}
         >
-          Outside of Time
+          {settings?.banner_text || "Outside of Time"}
         </p>
       </div>
     </>

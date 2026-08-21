@@ -40,6 +40,15 @@ export default function AdminDashboard() {
           <h2 className="text-sm tracking-[0.2em] uppercase mb-2">Orders</h2>
           <p className="text-xs opacity-60">View incoming orders</p>
         </Link>
+        
+        <Link
+          href="/admin/settings"
+          className="p-6 rounded border hover:opacity-80 transition-opacity"
+          style={{ borderColor: "#333" }}
+        >
+          <h2 className="text-sm tracking-[0.2em] uppercase mb-2">Homepage</h2>
+          <p className="text-xs opacity-60">Edit hero images and text</p>
+        </Link>
       </div>
     </main>
   );

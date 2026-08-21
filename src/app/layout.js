@@ -2,6 +2,7 @@ import { Bodoni_Moda, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./CartContext";
 import Script from "next/script";
+import Footer from "./Footer";
 
 // const bodoni = Bodoni_Moda({
 //   variable: "--font-display",
@@ -24,7 +25,10 @@ export default function RootLayout({ children }) {
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          {children}
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );

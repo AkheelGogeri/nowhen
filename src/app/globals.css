@@ -37,3 +37,11 @@ h1, h2, h3, .font-display {
 .marquee-track {
   animation: marquee 20s linear infinite;
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
