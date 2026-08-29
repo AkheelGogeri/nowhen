@@ -5,14 +5,26 @@ import { useState } from "react";
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [subError, setSubError] = useState("");
 
-  function handleSubscribe(e) {
+  async function handleSubscribe(e) {
     e.preventDefault();
     if (!email) return;
-    // Placeholder for now — newsletter backend not built yet
-    setSubscribed(true);
-    setEmail("");
-    setTimeout(() => setSubscribed(false), 3000);
+    setSubError("");
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to subscribe");
+      setSubscribed(true);
+      setEmail("");
+      setTimeout(() => setSubscribed(false), 3000);
+    } catch (err) {
+      setSubError(err.message);
+    }
   }
 
   return (
@@ -67,6 +79,11 @@ export default function Footer() {
           </form>
           {subscribed && (
             <p className="text-xs mt-2 opacity-70">Thanks — you're on the list.</p>
+          )}
+          {subError && (
+            <p className="text-xs mt-2" style={{ color: "#8B1E24" }}>
+              {subError}
+            </p>
           )}
         </div>
       </div>

@@ -1,10 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { Heart } from "lucide-react";
 import Navbar from "../Navbar";
 import { useCart } from "../CartContext";
+import { useWishlist } from "../WishlistContext";
 
-function ProductCard({ product, onAddToCart }) {
+function ProductCard({ product, onAddToCart, index = 0 }) {
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const wishlisted = isWishlisted(product.id);
   const images = (product.images && product.images.length > 0
     ? product.images
     : [product.image]
@@ -36,14 +41,25 @@ function ProductCard({ product, onAddToCart }) {
     setPaused(true);
   }
 
-  function handleAddToCart() {
+  const outOfStock = product.in_stock === false;
+
+  function handleAddToCart(e) {
+    e.stopPropagation();
+    if (outOfStock) return;
+    if (product.sizes && product.sizes.length > 0) {
+      router.push(`/shop/${product.id}`);
+      return;
+    }
     onAddToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-xs mx-auto">
+    <div
+      className="flex flex-col items-center w-full max-w-xs mx-auto fade-in-up"
+      style={{ opacity: 0, animationDelay: `${Math.min(index, 10) * 70}ms` }}
+    >
       <div
         className="relative w-full aspect-[4/5] rounded overflow-hidden group cursor-pointer"
         style={{ backgroundColor: "#111" }}
@@ -52,12 +68,15 @@ function ProductCard({ product, onAddToCart }) {
         onClick={() => router.push(`/shop/${product.id}`)}
       >
         {images.map((img, i) => (
-          <img
+          <Image
             key={i}
             src={img}
             alt={product.name}
-            className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500"
+            fill
+            sizes="(max-width: 767px) 45vw, (max-width: 1023px) 30vw, 22vw"
+            className="object-contain transition-opacity duration-500"
             style={{ opacity: i === current ? 1 : 0 }}
+            loading={index < 4 ? "eager" : "lazy"}
           />
         ))}
 
@@ -93,6 +112,32 @@ function ProductCard({ product, onAddToCart }) {
             </div>
           </>
         )}
+
+        {outOfStock && (
+          <div
+            className="absolute inset-0 flex items-center justify-center z-10"
+            style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+          >
+            <span
+              className="text-xs tracking-[0.2em] uppercase px-3 py-1.5 rounded"
+              style={{ border: "1px solid #F5F2EC", color: "#F5F2EC" }}
+            >
+              Out of Stock
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWishlist(product);
+          }}
+          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-transform hover:scale-110"
+          style={{ backgroundColor: "rgba(13,13,13,0.6)" }}
+        >
+          <Heart size={16} fill={wishlisted ? "#8B1E24" : "none"} color={wishlisted ? "#8B1E24" : "#F5F2EC"} />
+        </button>
       </div>
 
       <p className="mt-4 text-sm tracking-wide text-center">{product.name}</p>
@@ -105,23 +150,55 @@ function ProductCard({ product, onAddToCart }) {
 
       <button
         onClick={handleAddToCart}
-        className="mt-3 px-8 py-3 text-xs tracking-[0.2em] uppercase font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
+        disabled={outOfStock}
+        className="mt-3 px-8 py-3 text-xs tracking-[0.2em] uppercase font-semibold transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
         style={{
           backgroundColor: added ? "#1A1A1A" : "#8B1E24",
           color: "#F5F2EC",
           border: added ? "1px solid #8B1E24" : "1px solid transparent",
         }}
       >
-        {added ? "✓ Added" : "Add to Cart"}
+        {outOfStock
+          ? "Out of Stock"
+          : added
+          ? "✓ Added"
+          : product.sizes && product.sizes.length > 0
+          ? "Select Size"
+          : "Add to Cart"}
       </button>
     </div>
   );
 }
 
-export default function Shop() {
+function CardSkeleton() {
+  return (
+    <div className="flex flex-col items-center w-full max-w-xs mx-auto">
+      <div
+        className="relative w-full aspect-[4/5] rounded overflow-hidden animate-pulse"
+        style={{ backgroundColor: "#141414" }}
+      />
+      <div className="mt-4 h-3 w-32 rounded animate-pulse" style={{ backgroundColor: "#141414" }} />
+      <div className="mt-2 h-4 w-16 rounded animate-pulse" style={{ backgroundColor: "#141414" }} />
+      <div className="mt-3 h-10 w-32 rounded animate-pulse" style={{ backgroundColor: "#141414" }} />
+    </div>
+  );
+}
+
+const SORT_OPTIONS = [
+  { value: "featured", label: "Featured" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+];
+
+function ShopContent() {
   const { addToCart } = useCart();
+  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState("featured");
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("q") || "").trim().toLowerCase();
+  const activeCategory = searchParams.get("category") || "";
 
   useEffect(() => {
     async function fetchProducts() {
@@ -133,6 +210,27 @@ export default function Shop() {
     fetchProducts();
   }, []);
 
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+
+  function setCategory(cat) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (cat) params.set("category", cat);
+    else params.delete("category");
+    router.push(`/shop${params.toString() ? `?${params.toString()}` : ""}`);
+  }
+
+  const filtered = products.filter((p) => {
+    const matchesQuery = !query || p.name.toLowerCase().includes(query);
+    const matchesCategory = !activeCategory || p.category === activeCategory;
+    return matchesQuery && matchesCategory;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === "price-asc") return a.price - b.price;
+    if (sort === "price-desc") return b.price - a.price;
+    return 0;
+  });
+
   return (
     <>
       <Navbar />
@@ -140,19 +238,89 @@ export default function Shop() {
         className="min-h-screen px-6 md:px-10 pt-28 pb-16"
         style={{ backgroundColor: "#000000", color: "#F5F2EC" }}
       >
+        {categories.length > 0 && (
+          <div className="max-w-6xl mx-auto flex items-center gap-2 mb-6 flex-wrap">
+            <button
+              onClick={() => setCategory("")}
+              className="text-xs tracking-[0.15em] uppercase px-4 py-2 rounded-full transition-colors"
+              style={{
+                backgroundColor: !activeCategory ? "#8B1E24" : "transparent",
+                border: `1px solid ${!activeCategory ? "#8B1E24" : "#333"}`,
+                color: "#F5F2EC",
+              }}
+            >
+              All
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className="text-xs tracking-[0.15em] uppercase px-4 py-2 rounded-full transition-colors"
+                style={{
+                  backgroundColor: activeCategory === cat ? "#8B1E24" : "transparent",
+                  border: `1px solid ${activeCategory === cat ? "#8B1E24" : "#333"}`,
+                  color: "#F5F2EC",
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="max-w-6xl mx-auto flex items-center justify-between mb-8 gap-4 flex-wrap">
+          <p className="text-xs opacity-50 tracking-wide">
+            {!loading &&
+              (query
+                ? `${sorted.length} result${sorted.length !== 1 ? "s" : ""} for “${searchParams.get("q")}”`
+                : `${sorted.length} product${sorted.length !== 1 ? "s" : ""}`)}
+          </p>
+
+          {!loading && sorted.length > 0 && (
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="text-xs tracking-[0.15em] uppercase px-3 py-2 rounded outline-none"
+              style={{ backgroundColor: "#1A1A1A", border: "1px solid #333", color: "#F5F2EC" }}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
         {loading ? (
-          <p className="text-center text-sm opacity-60">Loading...</p>
-        ) : products.length === 0 ? (
-          <p className="text-center text-sm opacity-60">No products available yet.</p>
+          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-14">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-16">
+            <span className="text-3xl opacity-30">✦</span>
+            <p className="text-center text-sm opacity-60">
+              {query ? "No products match your search." : "No products available yet."}
+            </p>
+          </div>
         ) : (
           <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-14">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} onAddToCart={addToCart} />
+            {sorted.map((product, index) => (
+              <ProductCard key={product.id} product={product} onAddToCart={addToCart} index={index} />
             ))}
           </div>
         )}
       </main>
     </>
+  );
+}
+
+export default function Shop() {
+  return (
+    <Suspense fallback={null}>
+      <ShopContent />
+    </Suspense>
   );
 }

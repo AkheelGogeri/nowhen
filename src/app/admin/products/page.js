@@ -2,15 +2,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { compressImage } from "@/lib/compressImage";
+import AdminSkeleton from "../AdminSkeleton";
 
 const SIZE_OPTIONS = ["S", "M", "L", "XL", "XXL"];
 
-function ProductModal({ product, onClose, onSaved }) {
+function ProductModal({ product, existingCategories, onClose, onSaved }) {
   const isEditing = Boolean(product);
 
   const [name, setName] = useState(product?.name || "");
   const [price, setPrice] = useState(product?.price || "");
+  const [description, setDescription] = useState(product?.description || "");
+  const [category, setCategory] = useState(product?.category || "");
   const [sizes, setSizes] = useState(product?.sizes || []);
+  const [inStock, setInStock] = useState(product?.in_stock ?? true);
+  const [featured, setFeatured] = useState(product?.featured ?? false);
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [existingImages, setExistingImages] = useState(
@@ -69,8 +74,12 @@ function ProductModal({ product, onClose, onSaved }) {
         body: JSON.stringify({
           name,
           price: Number(price),
+          description,
+          category: category.trim(),
           sizes,
           images: finalImages,
+          in_stock: inStock,
+          featured,
         }),
       });
 
@@ -129,6 +138,32 @@ function ProductModal({ product, onClose, onSaved }) {
           style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
         />
 
+        <textarea
+          placeholder="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className="px-4 py-3 rounded outline-none text-sm resize-none"
+          style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
+        />
+
+        <div>
+          <input
+            type="text"
+            list="category-options"
+            placeholder="Category (e.g. Tees, Hoodies)"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full px-4 py-3 rounded outline-none text-sm"
+            style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
+          />
+          <datalist id="category-options">
+            {existingCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </div>
+
         <div>
           <label
             className="text-xs tracking-[0.15em] uppercase opacity-70 block mb-2"
@@ -154,6 +189,30 @@ function ProductModal({ product, onClose, onSaved }) {
             ))}
           </div>
         </div>
+
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={inStock}
+            onChange={(e) => setInStock(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <span className="text-xs tracking-[0.15em] uppercase" style={{ color: "#F5F2EC" }}>
+            In stock
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={featured}
+            onChange={(e) => setFeatured(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <span className="text-xs tracking-[0.15em] uppercase" style={{ color: "#F5F2EC" }}>
+            Featured on homepage
+          </span>
+        </label>
 
         <div>
           <label
@@ -225,6 +284,8 @@ export default function AdminProducts() {
     setLoading(false);
   }
 
+  const existingCategories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+
   function openAddModal() {
     setEditingProduct(null);
     setModalOpen(true);
@@ -289,7 +350,7 @@ export default function AdminProducts() {
       <p className="text-xs opacity-50 mb-6">Drag to reorder how products appear in the shop.</p>
 
       {loading ? (
-        <p className="text-xs opacity-60">Loading...</p>
+        <AdminSkeleton rows={5} />
       ) : (
         <div className="flex flex-col gap-3 max-w-2xl">
           {products.map((product, index) => (
@@ -314,9 +375,28 @@ export default function AdminProducts() {
               />
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{product.name}</p>
+                <p className="text-sm truncate flex items-center gap-2">
+                  {product.name}
+                  {product.in_stock === false && (
+                    <span
+                      className="text-[10px] tracking-wide uppercase px-2 py-0.5 rounded flex-shrink-0"
+                      style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
+                    >
+                      Out of stock
+                    </span>
+                  )}
+                  {product.featured && (
+                    <span
+                      className="text-[10px] tracking-wide uppercase px-2 py-0.5 rounded flex-shrink-0"
+                      style={{ backgroundColor: "#8B7A1E", color: "#F5F2EC" }}
+                    >
+                      Featured
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs opacity-60">
                   ₹{product.price}
+                  {product.category && ` · ${product.category}`}
                   {product.sizes && product.sizes.length > 0 && ` · ${product.sizes.join(", ")}`}
                 </p>
               </div>
@@ -345,6 +425,7 @@ export default function AdminProducts() {
       {modalOpen && (
         <ProductModal
           product={editingProduct}
+          existingCategories={existingCategories}
           onClose={() => setModalOpen(false)}
           onSaved={fetchProducts}
         />

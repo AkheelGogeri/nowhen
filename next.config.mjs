@@ -6,6 +6,14 @@ const nextConfig = {
   },
   productionBrowserSourceMaps: false,
   allowedDevOrigins: ["192.168.0.110"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

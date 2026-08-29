@@ -17,7 +17,7 @@ export async function DELETE(req, { params }) {
 export async function PUT(req, { params }) {
   try {
     const { id } = await params;
-    const { name, price, sizes, images } = await req.json();
+    const { name, price, sizes, images, description, in_stock, category, featured } = await req.json();
 
     if (!name || !price || !images || images.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -25,7 +25,7 @@ export async function PUT(req, { params }) {
 
     const result = await sql`
       UPDATE products
-      SET name = ${name}, price = ${price}, sizes = ${sizes || []}, images = ${images}, image = ${images[0]}
+      SET name = ${name}, price = ${price}, sizes = ${sizes || []}, images = ${images}, image = ${images[0]}, description = ${description || null}, in_stock = ${in_stock ?? true}, category = ${category || null}, featured = ${featured ?? false}
       WHERE id = ${id}
       RETURNING *
     `;

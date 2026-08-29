@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { compressImage } from "@/lib/compressImage";
+import AdminSkeleton from "../AdminSkeleton";
 
 export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
@@ -95,7 +96,7 @@ export default function AdminSettings() {
   if (loading) {
     return (
       <main className="min-h-screen px-8 py-12" style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC" }}>
-        <p className="text-xs opacity-60">Loading...</p>
+        <AdminSkeleton rows={3} />
       </main>
     );
   }
@@ -132,7 +133,7 @@ export default function AdminSettings() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs opacity-50 mb-2">Desktop image</p>
                   <label
