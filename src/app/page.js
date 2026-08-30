@@ -103,14 +103,26 @@ export default function Home() {
                 className="relative h-full flex-shrink-0"
                 style={{ width: `${100 / heroSlides.length}%` }}
               >
-                <div
-                  className="absolute inset-0 bg-cover bg-center block md:hidden"
-                  style={{ backgroundImage: `url('${slide.mobile}')` }}
-                />
-                <div
-                  className="absolute inset-0 bg-cover bg-center hidden md:block"
-                  style={{ backgroundImage: `url('${slide.desktop}')` }}
-                />
+                <div className="absolute inset-0 block md:hidden">
+                  <Image
+                    src={slide.mobile}
+                    alt=""
+                    fill
+                    sizes="100vw"
+                    priority={i === 0}
+                    className="object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 hidden md:block">
+                  <Image
+                    src={slide.desktop}
+                    alt=""
+                    fill
+                    sizes="100vw"
+                    priority={i === 0}
+                    className="object-cover"
+                  />
+                </div>
               </div>
             ))}
           </div>
