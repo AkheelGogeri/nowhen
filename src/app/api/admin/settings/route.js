@@ -15,7 +15,16 @@ export async function GET() {
 
 export async function PUT(req) {
   try {
-    const { hero_slides, marquee_text, banner_text, collection_text } = await req.json();
+    const {
+      hero_slides,
+      marquee_text,
+      banner_text,
+      collection_text,
+      low_stock_threshold,
+      promo_enabled,
+      promo_text,
+      promo_link,
+    } = await req.json();
 
     const result = await sql`
       UPDATE site_settings
@@ -24,6 +33,10 @@ export async function PUT(req) {
         marquee_text = ${marquee_text},
         banner_text = ${banner_text},
         collection_text = ${collection_text},
+        low_stock_threshold = ${low_stock_threshold ?? 5},
+        promo_enabled = ${promo_enabled ?? false},
+        promo_text = ${promo_text || null},
+        promo_link = ${promo_link || null},
         updated_at = NOW()
       WHERE id = 1
       RETURNING *

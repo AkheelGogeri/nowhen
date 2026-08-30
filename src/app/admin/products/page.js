@@ -190,17 +190,26 @@ function ProductModal({ product, existingCategories, onClose, onSaved }) {
           </div>
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={inStock}
-            onChange={(e) => setInStock(e.target.checked)}
-            className="w-4 h-4"
-          />
-          <span className="text-xs tracking-[0.15em] uppercase" style={{ color: "#F5F2EC" }}>
-            In stock
-          </span>
-        </label>
+        <div>
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={inStock}
+              onChange={(e) => setInStock(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="text-xs tracking-[0.15em] uppercase" style={{ color: "#F5F2EC" }}>
+              In stock
+            </span>
+          </label>
+          <p className="text-[10px] opacity-40 mt-1.5">
+            Quick override. Gets auto-corrected whenever you update real counts on the{" "}
+            <Link href="/admin/inventory" className="underline">
+              Inventory page
+            </Link>
+            .
+          </p>
+        </div>
 
         <label className="flex items-center gap-3 cursor-pointer select-none">
           <input

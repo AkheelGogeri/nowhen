@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { neon } from "@neondatabase/serverless";
-import { Package, Tag, ShoppingBag, Image as ImageIcon, Mail, Star } from "lucide-react";
+import { Package, Tag, ShoppingBag, Image as ImageIcon, Mail, Star, Boxes, Megaphone } from "lucide-react";
 
 const sql = neon(process.env.DATABASE_URL);
 const PAID_STATUSES = ["paid", "shipped", "delivered"];
@@ -60,9 +60,10 @@ function StatCard({ label, value, accent }) {
 
 const NAV_TILES = [
   { href: "/admin/products", label: "Products", desc: "Add, edit, or remove products", Icon: Package },
+  { href: "/admin/inventory", label: "Inventory", desc: "Track and update stock levels", Icon: Boxes },
   { href: "/admin/orders", label: "Orders", desc: "View incoming orders", Icon: ShoppingBag },
   { href: "/admin/offers", label: "Offers", desc: "Manage discount codes", Icon: Tag },
-  { href: "/admin/settings", label: "Homepage", desc: "Edit hero images and text", Icon: ImageIcon },
+  { href: "/admin/settings", label: "Homepage", desc: "Edit hero images, banners, and text", Icon: ImageIcon },
   { href: "/admin/subscribers", label: "Subscribers", desc: "View newsletter signups", Icon: Mail },
   { href: "/admin/reviews", label: "Reviews", desc: "Moderate customer reviews", Icon: Star },
 ];

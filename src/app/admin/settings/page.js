@@ -14,6 +14,10 @@ export default function AdminSettings() {
   const [marqueeText, setMarqueeText] = useState("");
   const [bannerText, setBannerText] = useState("");
   const [collectionText, setCollectionText] = useState("");
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [promoEnabled, setPromoEnabled] = useState(false);
+  const [promoText, setPromoText] = useState("");
+  const [promoLink, setPromoLink] = useState("");
 
   useEffect(() => {
     fetchSettings();
@@ -27,6 +31,10 @@ export default function AdminSettings() {
     setMarqueeText(data.marquee_text || "");
     setBannerText(data.banner_text || "");
     setCollectionText(data.collection_text || "");
+    setLowStockThreshold(data.low_stock_threshold ?? 5);
+    setPromoEnabled(data.promo_enabled ?? false);
+    setPromoText(data.promo_text || "");
+    setPromoLink(data.promo_link || "");
     setLoading(false);
   }
 
@@ -81,6 +89,10 @@ export default function AdminSettings() {
           marquee_text: marqueeText,
           banner_text: bannerText,
           collection_text: collectionText,
+          low_stock_threshold: Number(lowStockThreshold) || 5,
+          promo_enabled: promoEnabled,
+          promo_text: promoText,
+          promo_link: promoLink,
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
@@ -239,6 +251,66 @@ export default function AdminSettings() {
             style={{ backgroundColor: "#1A1A1A", border: "1px solid #333" }}
           />
         </div>
+      </section>
+
+      {/* Site-wide promo banner */}
+      <section className="mb-14 max-w-md flex flex-col gap-5">
+        <h2 className="text-sm tracking-[0.2em] uppercase mb-2">Announcement Bar</h2>
+        <p className="text-xs opacity-50 -mt-3">
+          A slim bar shown above the navigation on every page — good for sales, launches, or shipping promos.
+        </p>
+
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={promoEnabled}
+            onChange={(e) => setPromoEnabled(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <span className="text-xs tracking-[0.15em] uppercase" style={{ color: "#F5F2EC" }}>
+            Show announcement bar
+          </span>
+        </label>
+
+        <div>
+          <label className="text-xs opacity-50 block mb-2">Text</label>
+          <input
+            type="text"
+            placeholder="Flat 20% off — this week only"
+            value={promoText}
+            onChange={(e) => setPromoText(e.target.value)}
+            className="w-full px-4 py-3 rounded outline-none text-sm"
+            style={{ backgroundColor: "#1A1A1A", border: "1px solid #333", color: "#F5F2EC" }}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs opacity-50 block mb-2">Link (optional)</label>
+          <input
+            type="text"
+            placeholder="/shop?category=Oversized+Tees"
+            value={promoLink}
+            onChange={(e) => setPromoLink(e.target.value)}
+            className="w-full px-4 py-3 rounded outline-none text-sm"
+            style={{ backgroundColor: "#1A1A1A", border: "1px solid #333", color: "#F5F2EC" }}
+          />
+        </div>
+      </section>
+
+      {/* Low stock threshold */}
+      <section className="mb-14 max-w-md flex flex-col gap-3">
+        <h2 className="text-sm tracking-[0.2em] uppercase mb-2">Low Stock Alert</h2>
+        <p className="text-xs opacity-50 -mt-1">
+          Products at or below this count show an "Only X left — hurry!" badge on the shop and product pages.
+        </p>
+        <input
+          type="number"
+          min="0"
+          value={lowStockThreshold}
+          onChange={(e) => setLowStockThreshold(e.target.value)}
+          className="w-32 px-4 py-3 rounded outline-none text-sm"
+          style={{ backgroundColor: "#1A1A1A", border: "1px solid #333", color: "#F5F2EC" }}
+        />
       </section>
 
       {error && (

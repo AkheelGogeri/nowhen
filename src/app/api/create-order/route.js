@@ -24,7 +24,9 @@ export async function POST(req) {
 
     // Recompute the total from the DB — never trust a client-supplied amount.
     const ids = [...new Set(items.map((item) => item.id))];
-    const products = await sql`SELECT id, name, price, in_stock FROM products WHERE id = ANY(${ids})`;
+    const products = await sql`
+      SELECT id, name, price, in_stock, stock_by_size, stock_qty FROM products WHERE id = ANY(${ids})
+    `;
     const priceById = new Map(products.map((p) => [p.id, p]));
 
     let amount = 0;
@@ -38,6 +40,22 @@ export async function POST(req) {
         return NextResponse.json({ error: `${product.name} is out of stock` }, { status: 400 });
       }
       const qty = Math.max(1, Number(item.qty) || 1);
+
+      const available = item.selectedSize
+        ? Number(product.stock_by_size?.[item.selectedSize] ?? 0)
+        : Number(product.stock_qty ?? 0);
+      if (available < qty) {
+        return NextResponse.json(
+          {
+            error:
+              available === 0
+                ? `${product.name}${item.selectedSize ? ` (${item.selectedSize})` : ""} is out of stock`
+                : `Only ${available} left of ${product.name}${item.selectedSize ? ` (${item.selectedSize})` : ""}`,
+          },
+          { status: 400 }
+        );
+      }
+
       amount += product.price * qty;
       lineItems.push({
         id: product.id,

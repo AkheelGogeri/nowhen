@@ -7,13 +7,18 @@ import Navbar from "../Navbar";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
 
-function ProductCard({ product, onAddToCart, index = 0 }) {
+function ProductCard({ product, onAddToCart, index = 0, lowStockThreshold = 5 }) {
   const { isWishlisted, toggleWishlist } = useWishlist();
   const wishlisted = isWishlisted(product.id);
   const images = (product.images && product.images.length > 0
     ? product.images
     : [product.image]
   ).filter(Boolean);
+
+  const totalStock = product.stock_by_size && Object.keys(product.stock_by_size).length > 0
+    ? Object.values(product.stock_by_size).reduce((sum, n) => sum + (Number(n) || 0), 0)
+    : Number(product.stock_qty ?? 0);
+  const isLowStock = totalStock > 0 && totalStock <= lowStockThreshold;
 
   const router = useRouter();
 
@@ -138,6 +143,15 @@ function ProductCard({ product, onAddToCart, index = 0 }) {
         >
           <Heart size={16} fill={wishlisted ? "#8B1E24" : "none"} color={wishlisted ? "#8B1E24" : "#F5F2EC"} />
         </button>
+
+        {!outOfStock && isLowStock && (
+          <span
+            className="absolute top-2 left-2 z-10 text-[10px] tracking-wide uppercase px-2 py-1 rounded"
+            style={{ backgroundColor: "rgba(139,122,30,0.9)", color: "#F5F2EC" }}
+          >
+            Only {totalStock} left
+          </span>
+        )}
       </div>
 
       <p className="mt-4 text-sm tracking-wide text-center">{product.name}</p>
@@ -196,16 +210,35 @@ function ShopContent() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState("featured");
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const searchParams = useSearchParams();
   const query = (searchParams.get("q") || "").trim().toLowerCase();
   const activeCategory = searchParams.get("category") || "";
 
   useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.low_stock_threshold) setLowStockThreshold(data.low_stock_threshold);
+      } catch {
+        // fall back to default threshold
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
     async function fetchProducts() {
-      const res = await fetch("/api/products");
-      const data = await res.json();
-      setProducts(data);
-      setLoading(false);
+      try {
+        const res = await fetch("/api/products");
+        const data = await res.json();
+        if (Array.isArray(data)) setProducts(data);
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchProducts();
   }, []);
@@ -308,7 +341,7 @@ function ShopContent() {
         ) : (
           <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-14">
             {sorted.map((product, index) => (
-              <ProductCard key={product.id} product={product} onAddToCart={addToCart} index={index} />
+              <ProductCard key={product.id} product={product} onAddToCart={addToCart} index={index} lowStockThreshold={lowStockThreshold} />
             ))}
           </div>
         )}

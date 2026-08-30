@@ -248,6 +248,7 @@ export default function ProductDetail() {
   const [error, setError] = useState("");
   const [zoomStyle, setZoomStyle] = useState({});
   const [zooming, setZooming] = useState(false);
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -262,6 +263,19 @@ export default function ProductDetail() {
     }
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.low_stock_threshold) setLowStockThreshold(data.low_stock_threshold);
+      } catch {
+        // fall back to default threshold
+      }
+    }
+    fetchSettings();
+  }, []);
 
   function handleMouseMove(e) {
     if (!zooming) return;
@@ -314,6 +328,17 @@ export default function ProductDetail() {
 
   const images = (product.images && product.images.length > 0 ? product.images : [product.image]).filter(Boolean);
   const outOfStock = product.in_stock === false;
+  const hasSizes = product.sizes && product.sizes.length > 0;
+
+  function stockForSize(size) {
+    return Number(product.stock_by_size?.[size] ?? 0);
+  }
+  const selectedStock = hasSizes
+    ? selectedSize
+      ? stockForSize(selectedSize)
+      : null
+    : Number(product.stock_qty ?? 0);
+  const isLowStock = selectedStock !== null && selectedStock > 0 && selectedStock <= lowStockThreshold;
 
   return (
     <>
@@ -395,30 +420,44 @@ export default function ProductDetail() {
               </p>
             )}
 
-            {product.sizes && product.sizes.length > 0 && (
-              <div className="mb-6">
+            {hasSizes && (
+              <div className="mb-2">
                 <p className="text-xs tracking-[0.15em] uppercase opacity-70 mb-3">Size</p>
                 <div className="flex gap-2 flex-wrap">
-                  {product.sizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => {
-                        setSelectedSize(size);
-                        setError("");
-                      }}
-                      className="w-12 h-12 flex items-center justify-center text-xs tracking-wide rounded transition-all duration-150 hover:scale-105"
-                      style={{
-                        backgroundColor: selectedSize === size ? "#8B1E24" : "transparent",
-                        border: "1px solid " + (selectedSize === size ? "#8B1E24" : "#333"),
-                        color: "#F5F2EC",
-                      }}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.sizes.map((size) => {
+                    const soldOut = stockForSize(size) === 0;
+                    return (
+                      <button
+                        key={size}
+                        disabled={soldOut}
+                        onClick={() => {
+                          setSelectedSize(size);
+                          setQty(1);
+                          setError("");
+                        }}
+                        className="relative w-12 h-12 flex items-center justify-center text-xs tracking-wide rounded transition-all duration-150 hover:scale-105 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: selectedSize === size ? "#8B1E24" : "transparent",
+                          border: "1px solid " + (selectedSize === size ? "#8B1E24" : "#333"),
+                          color: soldOut ? "#555" : "#F5F2EC",
+                          textDecoration: soldOut ? "line-through" : "none",
+                        }}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
+
+            <div className="mb-6">
+              {isLowStock && (
+                <p className="text-xs" style={{ color: "#8B7A1E" }}>
+                  Only {selectedStock} left{hasSizes ? ` in size ${selectedSize}` : ""} — hurry!
+                </p>
+              )}
+            </div>
 
             <div className="mb-6">
               <p className="text-xs tracking-[0.15em] uppercase opacity-70 mb-3">Quantity</p>
@@ -433,9 +472,10 @@ export default function ProductDetail() {
                 </button>
                 <span className="text-sm w-6 text-center">{qty}</span>
                 <button
-                  onClick={() => setQty((q) => q + 1)}
+                  onClick={() => setQty((q) => (selectedStock !== null ? Math.min(selectedStock, q + 1) : q + 1))}
+                  disabled={selectedStock !== null && qty >= selectedStock}
                   aria-label="Increase quantity"
-                  className="w-10 h-10 flex items-center justify-center rounded transition-colors hover:opacity-70"
+                  className="w-10 h-10 flex items-center justify-center rounded transition-colors hover:opacity-70 disabled:opacity-30"
                   style={{ border: "1px solid #333" }}
                 >
                   +

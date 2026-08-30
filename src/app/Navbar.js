@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, User, ShoppingBag, Heart, Menu, X } from "lucide-react";
@@ -13,11 +13,44 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [promo, setPromo] = useState(null);
+  const [promoDismissed, setPromoDismissed] = useState(false);
   const cartCount = cart?.reduce((sum, item) => sum + (item.qty || 1), 0) || 0;
   const wishlistCount = wishlist?.length || 0;
 
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    async function fetchPromo() {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.promo_enabled && data.promo_text) {
+          setPromo({ text: data.promo_text, link: data.promo_link });
+        }
+      } catch {
+        // no promo bar if settings fail to load
+      }
+    }
+    fetchPromo();
+    try {
+      setPromoDismissed(sessionStorage.getItem("nowhen_promo_dismissed") === "true");
+    } catch {
+      // sessionStorage unavailable — just show the bar
+    }
+  }, []);
+
+  function dismissPromo() {
+    setPromoDismissed(true);
+    try {
+      sessionStorage.setItem("nowhen_promo_dismissed", "true");
+    } catch {
+      // ignore
+    }
+  }
+
+  const showPromo = promo && !promoDismissed;
 
   function handleSearchSubmit(e) {
     e.preventDefault();
@@ -39,11 +72,33 @@ export default function Navbar() {
 
   return (
     <>
-      <nav
-        className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 md:px-10 py-4"
-        style={{ backgroundColor: "#000000", color: "#F5F2EC" }}
-      >
-        {/* Left — nav links (desktop) */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        {showPromo && (
+          <div
+            className="flex items-center justify-center gap-3 px-4 py-2 text-center"
+            style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
+          >
+            {promo.link ? (
+              <Link href={promo.link} className="text-xs tracking-[0.1em] uppercase hover:underline">
+                {promo.text}
+              </Link>
+            ) : (
+              <span className="text-xs tracking-[0.1em] uppercase">{promo.text}</span>
+            )}
+            <button
+              onClick={dismissPromo}
+              aria-label="Dismiss announcement"
+              className="flex-shrink-0 opacity-70 hover:opacity-100"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        <nav
+          className="flex items-center justify-between px-6 md:px-10 py-4"
+          style={{ backgroundColor: "#000000", color: "#F5F2EC" }}
+        >
+          {/* Left — nav links (desktop) */}
         <div className="hidden md:flex items-center gap-8 flex-1">
           <Link href="/" className="text-sm tracking-[0.25em] uppercase hover:opacity-70 transition-opacity">
             Home
@@ -124,7 +179,8 @@ export default function Navbar() {
             )}
           </Link>
         </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* Search bar */}
       {searchOpen && (
