@@ -23,59 +23,50 @@ function stockFor(product, size) {
 }
 
 function OfflineSaleModal({ onClose, onSaved }) {
-  const [products, setProducts] = useState([]);
-  const [productId, setProductId] = useState("");
-  const [query, setQuery] = useState("");
-  const [listOpen, setListOpen] = useState(false);
+  const [description, setDescription] = useState("");
   const [size, setSize] = useState("");
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [note, setNote] = useState("");
   const [soldOn, setSoldOn] = useState(new Date().toISOString().slice(0, 10));
+
+  // Optional: link the sale to a website product so its stock goes down.
+  const [linked, setLinked] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [productId, setProductId] = useState("");
+
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!linked || products.length > 0) return;
     fetch("/api/admin/products")
       .then((r) => r.json())
       .then((data) => Array.isArray(data) && setProducts(data))
-      .catch(() => setError("Couldn't load products"));
-  }, []);
+      .catch(() => setError("Couldn't load your website products"));
+  }, [linked, products.length]);
 
-  const product = products.find((p) => String(p.id) === String(productId));
-  const hasSizes = product?.sizes?.length > 0;
-  const available = product ? stockFor(product, size) : null;
+  const product = linked ? products.find((p) => String(p.id) === String(productId)) : null;
+  const sizeChoices = product?.sizes?.length > 0 ? product.sizes : ["S", "M", "L", "XL", "XXL"];
   const total = (Number(price) || 0) * (Number(qty) || 0);
 
   function pickProduct(id) {
     setProductId(id);
     setSize("");
     const p = products.find((x) => String(x.id) === String(id));
-    setPrice(p ? String(p.price) : "");
-    setQuery(p ? p.name : "");
-    setListOpen(false);
-  }
-
-  function handleQueryChange(value) {
-    setQuery(value);
-    setListOpen(true);
-    if (productId) {
-      // typing again means "pick a different one"
-      setProductId("");
-      setSize("");
-      setPrice("");
+    if (p) {
+      setDescription((prev) => prev || p.name);
+      setPrice((prev) => prev || String(p.price));
     }
   }
-
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const matches = products.filter((p) => words.every((w) => p.name.toLowerCase().includes(w)));
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    if (!product) return setError("Pick a product.");
-    if (hasSizes && !size) return setError("Pick a size.");
+    if (!description.trim()) return setError("Type what was sold.");
+    if (linked && !product) return setError("Pick the website product, or untick the stock option.");
+    if (product?.sizes?.length > 0 && !size) return setError("Pick a size for the website product.");
     if (!(Number(qty) >= 1)) return setError("Quantity must be at least 1.");
     if (price === "" || Number(price) < 0) return setError("Enter the price it was sold for.");
 
@@ -85,8 +76,9 @@ function OfflineSaleModal({ onClose, onSaved }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          product_id: product.id,
-          size: hasSizes ? size : null,
+          description,
+          product_id: product ? product.id : null,
+          size,
           qty: Number(qty),
           unit_price: Number(price),
           customer_name: customerName,
@@ -114,6 +106,7 @@ function OfflineSaleModal({ onClose, onSaved }) {
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
+        autoComplete="off"
         className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6 rounded flex flex-col gap-4"
         style={{ backgroundColor: "#1A1A1A", border: "1px solid #333" }}
       >
@@ -124,67 +117,51 @@ function OfflineSaleModal({ onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="relative">
+        <div>
+          <label className="text-xs tracking-[0.15em] uppercase opacity-70 block mb-2">What was sold</label>
           <input
             type="text"
             autoFocus
-            placeholder="Search t-shirt — type a name or colour"
-            value={query}
-            onChange={(e) => handleQueryChange(e.target.value)}
-            onFocus={() => !productId && setListOpen(true)}
+            autoComplete="off"
+            placeholder="e.g. Custom black tee, dragon print"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             className="w-full px-4 py-3 rounded outline-none text-sm"
-            style={{ ...inputStyle, borderColor: product ? "#3E8B4A" : "#333" }}
+            style={inputStyle}
           />
-          {listOpen && !product && (
-            <div
-              className="absolute left-0 right-0 top-full mt-1 z-10 max-h-56 overflow-y-auto rounded"
-              style={{ backgroundColor: "#0D0D0D", border: "1px solid #333" }}
-            >
-              {matches.length === 0 ? (
-                <p className="px-4 py-3 text-xs opacity-50">No t-shirt matches “{query}”.</p>
-              ) : (
-                matches.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    // mousedown, so it registers before the input loses focus
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      pickProduct(p.id);
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 hover:bg-[#1A1A1A]"
-                  >
-                    <span className="truncate">{p.name}</span>
-                    <span className="text-xs opacity-50 flex-shrink-0">₹{p.price}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
         </div>
 
-        {hasSizes && (
-          <div>
-            <p className="text-xs tracking-[0.15em] uppercase opacity-70 mb-2">Size</p>
-            <div className="flex gap-2 flex-wrap">
-              {product.sizes.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSize(s)}
-                  className="px-4 py-2 text-xs rounded"
-                  style={{
-                    backgroundColor: size === s ? "#8B1E24" : "#0D0D0D",
-                    border: "1px solid #333",
-                  }}
-                >
-                  {s}
-                  <span className="opacity-50 ml-1.5">({stockFor(product, s)})</span>
-                </button>
-              ))}
-            </div>
+        <div>
+          <label className="text-xs tracking-[0.15em] uppercase opacity-70 block mb-2">Size</label>
+          <div className="flex gap-2 flex-wrap items-center">
+            {sizeChoices.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSize(s)}
+                className="px-4 py-2 text-xs rounded"
+                style={{
+                  backgroundColor: size === s ? "#8B1E24" : "#0D0D0D",
+                  border: "1px solid #333",
+                }}
+              >
+                {s}
+                {product && <span className="opacity-50 ml-1.5">({stockFor(product, s)})</span>}
+              </button>
+            ))}
+            {!product && (
+              <input
+                type="text"
+                autoComplete="off"
+                placeholder="or type"
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+                className="w-24 px-3 py-2 rounded outline-none text-xs"
+                style={inputStyle}
+              />
+            )}
           </div>
-        )}
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -213,17 +190,9 @@ function OfflineSaleModal({ onClose, onSaved }) {
           </div>
         </div>
 
-        {product && Number(price) !== product.price && price !== "" && (
-          <p className="text-[11px] opacity-60 -mt-2">Listed price is ₹{product.price} — recording ₹{price} as sold.</p>
-        )}
-        {product && available !== null && Number(qty) > available && (
-          <p className="text-[11px] -mt-2" style={{ color: "#8B7A1E" }}>
-            Stock shows only {available} — it&apos;ll be saved anyway and stock will drop to 0.
-          </p>
-        )}
-
         <input
           type="text"
+          autoComplete="off"
           placeholder="Customer name (optional)"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
@@ -232,6 +201,7 @@ function OfflineSaleModal({ onClose, onSaved }) {
         />
         <input
           type="text"
+          autoComplete="off"
           placeholder="Note, e.g. college fest, friend (optional)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -256,6 +226,41 @@ function OfflineSaleModal({ onClose, onSaved }) {
             // colorScheme dark makes the browser draw a light calendar icon
             style={{ ...inputStyle, colorScheme: "dark" }}
           />
+        </div>
+
+        <div className="pt-1" style={{ borderTop: "1px solid #2a2a2a" }}>
+          <label className="flex items-start gap-3 cursor-pointer select-none mt-4">
+            <input
+              type="checkbox"
+              checked={linked}
+              onChange={(e) => {
+                setLinked(e.target.checked);
+                setProductId("");
+                setSize("");
+              }}
+              className="w-4 h-4 mt-0.5"
+            />
+            <span className="text-xs opacity-80 leading-relaxed">
+              This is one of my website t-shirts — take it out of website stock
+              <span className="block opacity-50">Leave unticked for custom or one-off tees.</span>
+            </span>
+          </label>
+
+          {linked && (
+            <select
+              value={productId}
+              onChange={(e) => pickProduct(e.target.value)}
+              className="w-full mt-3 px-4 py-3 rounded outline-none text-sm"
+              style={inputStyle}
+            >
+              <option value="">Which website t-shirt?</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="flex items-center justify-between text-sm">

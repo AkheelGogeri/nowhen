@@ -19,6 +19,7 @@ function applyDelta(product, item, sign) {
 
 async function adjust(items, sign) {
   for (const item of items || []) {
+    if (!item.id) continue; // custom / off-catalogue item: nothing to adjust
     const [product] = await sql`SELECT stock_by_size, stock_qty FROM products WHERE id = ${item.id}`;
     if (!product) continue;
     const next = applyDelta(product, item, sign);

@@ -14,29 +14,38 @@ export async function GET() {
   }
 }
 
-// Record a sale made in person (shop, college, event...). Price is whatever it was
-// actually sold for, so it can differ from the listed price.
+// Record a sale made in person. The item is described freely (it may be a custom
+// tee that isn't on the website). If product_id is given, that website product's
+// stock is reduced; otherwise stock is left alone.
 export async function POST(req) {
   try {
-    const { product_id, size, qty, unit_price, customer_name, note, sold_on } = await req.json();
+    const { description, product_id, size, qty, unit_price, customer_name, note, sold_on } = await req.json();
 
     const quantity = Math.floor(Number(qty));
     const price = Math.round(Number(unit_price));
-    if (!product_id || !(quantity >= 1) || !(price >= 0)) {
-      return NextResponse.json({ error: "Pick a product, a quantity, and a price" }, { status: 400 });
+    const name = String(description || "").trim();
+    if (!name) {
+      return NextResponse.json({ error: "Describe what was sold" }, { status: 400 });
+    }
+    if (!(quantity >= 1) || !(price >= 0)) {
+      return NextResponse.json({ error: "Enter a quantity and the price it sold for" }, { status: 400 });
     }
 
-    const [product] = await sql`SELECT id, name, sizes FROM products WHERE id = ${product_id}`;
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-    if (product.sizes?.length > 0 && !size) {
-      return NextResponse.json({ error: "Pick a size" }, { status: 400 });
+    let productId = null;
+    let cleanSize = String(size || "").trim() || null;
+
+    if (product_id) {
+      const [product] = await sql`SELECT id, sizes FROM products WHERE id = ${product_id}`;
+      if (!product) {
+        return NextResponse.json({ error: "That website product no longer exists" }, { status: 404 });
+      }
+      if (product.sizes?.length > 0 && !product.sizes.includes(cleanSize)) {
+        return NextResponse.json({ error: "Pick one of that product's sizes" }, { status: 400 });
+      }
+      productId = product.id;
     }
 
-    const items = [
-      { id: product.id, name: product.name, price, size: product.sizes?.length > 0 ? size : null, qty: quantity },
-    ];
+    const items = [{ id: productId, name, price, size: cleanSize, qty: quantity }];
     const amount = price * quantity;
 
     let createdAt = new Date();
@@ -51,7 +60,7 @@ export async function POST(req) {
       RETURNING *
     `;
 
-    await deductStock(items);
+    if (productId) await deductStock(items);
 
     return NextResponse.json(inserted[0]);
   } catch (error) {
