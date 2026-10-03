@@ -25,6 +25,8 @@ function stockFor(product, size) {
 function OfflineSaleModal({ onClose, onSaved }) {
   const [products, setProducts] = useState([]);
   const [productId, setProductId] = useState("");
+  const [query, setQuery] = useState("");
+  const [listOpen, setListOpen] = useState(false);
   const [size, setSize] = useState("");
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState("");
@@ -51,7 +53,23 @@ function OfflineSaleModal({ onClose, onSaved }) {
     setSize("");
     const p = products.find((x) => String(x.id) === String(id));
     setPrice(p ? String(p.price) : "");
+    setQuery(p ? p.name : "");
+    setListOpen(false);
   }
+
+  function handleQueryChange(value) {
+    setQuery(value);
+    setListOpen(true);
+    if (productId) {
+      // typing again means "pick a different one"
+      setProductId("");
+      setSize("");
+      setPrice("");
+    }
+  }
+
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = products.filter((p) => words.every((w) => p.name.toLowerCase().includes(w)));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -106,19 +124,44 @@ function OfflineSaleModal({ onClose, onSaved }) {
           </button>
         </div>
 
-        <select
-          value={productId}
-          onChange={(e) => pickProduct(e.target.value)}
-          className="px-4 py-3 rounded outline-none text-sm"
-          style={inputStyle}
-        >
-          <option value="">Select t-shirt…</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <input
+            type="text"
+            autoFocus
+            placeholder="Search t-shirt — type a name or colour"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onFocus={() => !productId && setListOpen(true)}
+            className="w-full px-4 py-3 rounded outline-none text-sm"
+            style={{ ...inputStyle, borderColor: product ? "#3E8B4A" : "#333" }}
+          />
+          {listOpen && !product && (
+            <div
+              className="absolute left-0 right-0 top-full mt-1 z-10 max-h-56 overflow-y-auto rounded"
+              style={{ backgroundColor: "#0D0D0D", border: "1px solid #333" }}
+            >
+              {matches.length === 0 ? (
+                <p className="px-4 py-3 text-xs opacity-50">No t-shirt matches “{query}”.</p>
+              ) : (
+                matches.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    // mousedown, so it registers before the input loses focus
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      pickProduct(p.id);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 hover:bg-[#1A1A1A]"
+                  >
+                    <span className="truncate">{p.name}</span>
+                    <span className="text-xs opacity-50 flex-shrink-0">₹{p.price}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         {hasSizes && (
           <div>
@@ -175,7 +218,7 @@ function OfflineSaleModal({ onClose, onSaved }) {
         )}
         {product && available !== null && Number(qty) > available && (
           <p className="text-[11px] -mt-2" style={{ color: "#8B7A1E" }}>
-            Stock shows only {available} — it'll be saved anyway and stock will drop to 0.
+            Stock shows only {available} — it&apos;ll be saved anyway and stock will drop to 0.
           </p>
         )}
 
@@ -202,8 +245,16 @@ function OfflineSaleModal({ onClose, onSaved }) {
             value={soldOn}
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => setSoldOn(e.target.value)}
-            className="w-full px-4 py-3 rounded outline-none text-sm"
-            style={inputStyle}
+            onClick={(e) => {
+              try {
+                e.currentTarget.showPicker?.();
+              } catch {
+                // some browsers only allow the picker from the icon — fine
+              }
+            }}
+            className="w-full px-4 py-3 rounded outline-none text-sm cursor-pointer"
+            // colorScheme dark makes the browser draw a light calendar icon
+            style={{ ...inputStyle, colorScheme: "dark" }}
           />
         </div>
 
@@ -253,7 +304,7 @@ function DeleteModal({ order, onClose, onConfirm }) {
           Delete order #{order.id}?
         </h2>
         <p className="text-xs opacity-80 leading-relaxed">
-          This permanently removes the order ({order.customer_name}, ₹{order.amount}). It can't be undone.
+          This permanently removes the order ({order.customer_name}, ₹{order.amount}). It can&apos;t be undone.
           {order.source !== "offline" && SOLD_STATUSES.includes(order.status) && (
             <span style={{ color: "#8B7A1E" }}>
               {" "}
