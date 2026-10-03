@@ -2,6 +2,10 @@ import Link from "next/link";
 import { neon } from "@neondatabase/serverless";
 import { Package, Tag, ShoppingBag, Image as ImageIcon, Mail, Star, Boxes, Megaphone } from "lucide-react";
 
+// Without this Next.js prerenders the dashboard once at build time and serves that
+// frozen copy forever — which is why it kept saying "No orders yet".
+export const dynamic = "force-dynamic";
+
 const sql = neon(process.env.DATABASE_URL);
 const PAID_STATUSES = ["paid", "shipped", "delivered"];
 
@@ -28,7 +32,7 @@ async function getAnalytics() {
     LIMIT 5
   `;
   const recentOrders = await sql`
-    SELECT id, customer_name, amount, status, created_at
+    SELECT id, customer_name, amount, status, source, created_at
     FROM orders ORDER BY created_at DESC LIMIT 5
   `;
   const [productCounts] = await sql`
@@ -124,6 +128,11 @@ export default async function AdminDashboard() {
                 <div key={order.id} className="flex items-center justify-between text-xs">
                   <span className="opacity-80 truncate pr-3">
                     #{order.id} · {order.customer_name}
+                    {order.source === "offline" && (
+                      <span className="ml-2 text-[9px] uppercase tracking-wide" style={{ color: "#8B7A1E" }}>
+                        offline
+                      </span>
+                    )}
                   </span>
                   <span className="flex items-center gap-2 flex-shrink-0">
                     <span>₹{order.amount}</span>
