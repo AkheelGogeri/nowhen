@@ -8,6 +8,7 @@ function OfferModal({ onClose, onSaved }) {
   const [type, setType] = useState("percent");
   const [value, setValue] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [minItems, setMinItems] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +31,7 @@ function OfferModal({ onClose, onSaved }) {
           discount_percent: type === "percent" ? Number(value) : null,
           discount_amount: type === "amount" ? Number(value) : null,
           expires_at: expiresAt || null,
+          min_items: minItems ? Number(minItems) : null,
         }),
       });
       const data = await res.json();
@@ -108,6 +110,19 @@ function OfferModal({ onClose, onSaved }) {
           className="px-4 py-3 rounded outline-none text-sm"
           style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
         />
+
+        <div>
+          <label className="text-xs opacity-50 block mb-2">Minimum items in cart (optional — e.g. 2 for a &ldquo;buy 2&rdquo; bundle)</label>
+          <input
+            type="number"
+            min="2"
+            placeholder="Any number of items"
+            value={minItems}
+            onChange={(e) => setMinItems(e.target.value)}
+            className="w-full px-4 py-3 rounded outline-none text-sm"
+            style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
+          />
+        </div>
 
         <div>
           <label className="text-xs opacity-50 block mb-2">Expires (optional)</label>
@@ -206,6 +221,7 @@ export default function AdminOffers() {
                 <p className="text-sm tracking-wide">{offer.code}</p>
                 <p className="text-xs opacity-60 mt-1">
                   {offer.discount_percent ? `${offer.discount_percent}% off` : `₹${offer.discount_amount} off`}
+                  {offer.min_items && ` · min ${offer.min_items} items`}
                   {offer.expires_at && ` · expires ${new Date(offer.expires_at).toLocaleDateString()}`}
                 </p>
               </div>

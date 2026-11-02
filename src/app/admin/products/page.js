@@ -11,6 +11,7 @@ function ProductModal({ product, existingCategories, onClose, onSaved }) {
 
   const [name, setName] = useState(product?.name || "");
   const [price, setPrice] = useState(product?.price || "");
+  const [compareAtPrice, setCompareAtPrice] = useState(product?.compare_at_price || "");
   const [description, setDescription] = useState(product?.description || "");
   const [category, setCategory] = useState(product?.category || "");
   const [sizes, setSizes] = useState(product?.sizes || []);
@@ -74,6 +75,7 @@ function ProductModal({ product, existingCategories, onClose, onSaved }) {
         body: JSON.stringify({
           name,
           price: Number(price),
+          compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
           description,
           category: category.trim(),
           sizes,
@@ -137,6 +139,20 @@ function ProductModal({ product, existingCategories, onClose, onSaved }) {
           className="px-4 py-3 rounded outline-none text-sm"
           style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
         />
+
+        <div>
+          <input
+            type="number"
+            placeholder="Compare-at price / MRP (₹, optional)"
+            value={compareAtPrice}
+            onChange={(e) => setCompareAtPrice(e.target.value)}
+            className="w-full px-4 py-3 rounded outline-none text-sm"
+            style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC", border: "1px solid #333" }}
+          />
+          <p className="text-[10px] opacity-40 mt-1.5" style={{ color: "#F5F2EC" }}>
+            For sales: set this higher than the price and the store shows it struck through with a % off badge. Leave empty for no sale.
+          </p>
+        </div>
 
         <textarea
           placeholder="Description"

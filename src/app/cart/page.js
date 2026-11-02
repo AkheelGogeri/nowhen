@@ -1,7 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import Script from "next/script";
 import Navbar from "../Navbar";
 import { useCart } from "../CartContext";
+import { offerDiscount } from "@/lib/pricing";
 
 export default function Cart() {
   const { cart, removeFromCart, updateQty, clearCart } = useCart();
@@ -31,11 +34,9 @@ export default function Cart() {
   const [applyingPromo, setApplyingPromo] = useState(false);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const discount = offer
-    ? offer.discount_percent
-      ? Math.round((subtotal * offer.discount_percent) / 100)
-      : Math.min(offer.discount_amount, subtotal)
-    : 0;
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const discount = offerDiscount(offer, subtotal, itemCount);
+  const itemsShort = offer?.min_items ? Math.max(offer.min_items - itemCount, 0) : 0;
   const total = Math.max(subtotal - discount, 0);
 
   function handleChange(field, value) {
@@ -74,6 +75,11 @@ export default function Cart() {
 
     if (!customer.name || !customer.email || !customer.phone || !customer.address) {
       setError("Please fill in all your details before checking out.");
+      return;
+    }
+
+    if (typeof window === "undefined" || !window.Razorpay) {
+      setError("Payment is still loading — please try again in a moment.");
       return;
     }
 
@@ -170,6 +176,7 @@ export default function Cart() {
   return (
     <>
       <Navbar />
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
       <main
         className="min-h-screen px-4 sm:px-6 md:px-10 pt-28 pb-16"
         style={{ backgroundColor: "#000000", color: "#F5F2EC" }}
@@ -177,7 +184,16 @@ export default function Cart() {
         <h1 className="text-2xl md:text-3xl tracking-widest mb-8 md:mb-10 text-center">CART</h1>
 
         {cart.length === 0 ? (
-          <p className="text-center opacity-70">Your cart is empty.</p>
+          <div className="flex flex-col items-center gap-6">
+            <p className="text-center opacity-70">Your cart is empty.</p>
+            <Link
+              href="/shop"
+              className="px-8 py-3 text-xs tracking-[0.25em] uppercase font-semibold"
+              style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
+            >
+              Shop the collection
+            </Link>
+          </div>
         ) : (
           <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
             {/* Items */}
@@ -199,7 +215,7 @@ export default function Cart() {
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{item.name}</p>
+                      <p className="text-sm line-clamp-2">{item.name}</p>
                       {item.selectedSize && (
                         <p className="text-xs opacity-50 mt-0.5">Size: {item.selectedSize}</p>
                       )}
@@ -212,7 +228,7 @@ export default function Cart() {
                       <button
                         onClick={() => updateQty(item.cartId, item.qty - 1)}
                         aria-label="Decrease quantity"
-                        className="w-7 h-7 flex items-center justify-center rounded"
+                        className="w-9 h-9 flex items-center justify-center rounded"
                         style={{ border: "1px solid #333" }}
                       >
                         −
@@ -221,7 +237,7 @@ export default function Cart() {
                       <button
                         onClick={() => updateQty(item.cartId, item.qty + 1)}
                         aria-label="Increase quantity"
-                        className="w-7 h-7 flex items-center justify-center rounded"
+                        className="w-9 h-9 flex items-center justify-center rounded"
                         style={{ border: "1px solid #333" }}
                       >
                         +
@@ -244,8 +260,10 @@ export default function Cart() {
               <div className="mt-6">
                 {offer ? (
                   <div className="flex items-center justify-between text-sm">
-                    <span style={{ color: "#3E8B4A" }}>
-                      Code {offer.code} applied
+                    <span style={{ color: itemsShort > 0 ? "#8B7A1E" : "#3E8B4A" }}>
+                      {itemsShort > 0
+                        ? `Add ${itemsShort} more item${itemsShort !== 1 ? "s" : ""} to use ${offer.code}`
+                        : `Code ${offer.code} applied`}
                     </span>
                     <button
                       onClick={handleRemovePromo}
@@ -306,6 +324,7 @@ export default function Cart() {
               <input
                 type="text"
                 placeholder="Full name"
+                autoComplete="name"
                 value={customer.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 className="px-4 py-3 rounded outline-none text-sm"
@@ -314,6 +333,7 @@ export default function Cart() {
               <input
                 type="email"
                 placeholder="Email"
+                autoComplete="email"
                 value={customer.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 className="px-4 py-3 rounded outline-none text-sm"
@@ -322,13 +342,16 @@ export default function Cart() {
               <input
                 type="tel"
                 placeholder="Phone number"
+                autoComplete="tel"
+                inputMode="tel"
                 value={customer.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
                 className="px-4 py-3 rounded outline-none text-sm"
                 style={{ backgroundColor: "#1A1A1A", border: "1px solid #333", color: "#F5F2EC" }}
               />
               <textarea
-                placeholder="Shipping address"
+                placeholder="Shipping address (house, street, city, PIN code)"
+                autoComplete="street-address"
                 value={customer.address}
                 onChange={(e) => handleChange("address", e.target.value)}
                 rows={3}

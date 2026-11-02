@@ -2,6 +2,7 @@ import { neon } from "@neondatabase/serverless";
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
 import { getUserFromToken, SESSION_COOKIE } from "@/lib/auth";
+import { offerDiscount } from "@/lib/pricing";
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -82,10 +83,9 @@ export async function POST(req) {
       `;
       if (offerResult.length > 0) {
         const offerRow = offerResult[0];
-        discount = offerRow.discount_percent
-          ? Math.round((amount * offerRow.discount_percent) / 100)
-          : Math.min(offerRow.discount_amount, amount);
-        appliedCode = offerRow.code;
+        const itemCount = lineItems.reduce((sum, item) => sum + item.qty, 0);
+        discount = offerDiscount(offerRow, amount, itemCount);
+        appliedCode = discount > 0 ? offerRow.code : null;
       }
     }
 

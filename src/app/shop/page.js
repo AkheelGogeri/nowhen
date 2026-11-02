@@ -6,6 +6,7 @@ import { Heart } from "lucide-react";
 import Navbar from "../Navbar";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
+import { PriceTag } from "@/lib/pricing";
 
 function ProductCard({ product, onAddToCart, index = 0, lowStockThreshold = 5 }) {
   const { isWishlisted, toggleWishlist } = useWishlist();
@@ -155,12 +156,7 @@ function ProductCard({ product, onAddToCart, index = 0, lowStockThreshold = 5 })
       </div>
 
       <p className="mt-4 text-sm tracking-wide text-center">{product.name}</p>
-      <p
-        className="mt-1 text-lg font-semibold tracking-wide"
-        style={{ color: "#8B1E24" }}
-      >
-        ₹{product.price}
-      </p>
+      <PriceTag product={product} className="mt-1 text-lg font-semibold tracking-wide justify-center" />
 
       <button
         onClick={handleAddToCart}

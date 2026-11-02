@@ -3,7 +3,7 @@ import { neon } from "@neondatabase/serverless";
 const sql = neon(process.env.DATABASE_URL);
 
 export default async function sitemap() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nowhen.example.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nowhen.in";
 
   const staticRoutes = ["", "/shop", "/about", "/contact", "/faq", "/terms"].map((path) => ({
     url: `${baseUrl}${path}`,

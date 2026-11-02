@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -16,6 +17,7 @@ export async function POST(req) {
       await sql`UPDATE products SET sort_order = ${i} WHERE id = ${orderedIds[i]}`;
     }
 
+    revalidatePath("/", "layout");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);

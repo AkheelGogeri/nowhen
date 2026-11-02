@@ -1,5 +1,11 @@
 import Navbar from "../Navbar";
 
+export const metadata = {
+  title: "FAQ",
+  description: "Shipping times, sizes, returns, exchanges and payment options for Nowhen orders across India.",
+  alternates: { canonical: "/faq" },
+};
+
 const faqs = [
   {
     q: "How long does shipping take?",
@@ -7,7 +13,7 @@ const faqs = [
   },
   {
     q: "What sizes do you offer?",
-    a: "Our tees are oversized fit, available in S, M, L, XL, and XXL. Check each product page for a specific size chart.",
+    a: "Our tees are an oversized, relaxed fit. Available sizes are shown on each product page — sizes that are sold out are crossed out. Between sizes? Email us and we'll help you pick.",
   },
   {
     q: "Can I return or exchange an item?",

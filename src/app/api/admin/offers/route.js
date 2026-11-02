@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { code, discount_percent, discount_amount, expires_at } = await req.json();
+    const { code, discount_percent, discount_amount, expires_at, min_items } = await req.json();
 
     if (!code || (!discount_percent && !discount_amount)) {
       return NextResponse.json(
@@ -25,8 +25,8 @@ export async function POST(req) {
     }
 
     const result = await sql`
-      INSERT INTO offers (code, discount_percent, discount_amount, expires_at, active)
-      VALUES (${code.toUpperCase()}, ${discount_percent || null}, ${discount_amount || null}, ${expires_at || null}, true)
+      INSERT INTO offers (code, discount_percent, discount_amount, expires_at, active, min_items)
+      VALUES (${code.toUpperCase()}, ${discount_percent || null}, ${discount_amount || null}, ${expires_at || null}, true, ${min_items || null})
       RETURNING *
     `;
 

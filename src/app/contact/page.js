@@ -1,5 +1,11 @@
 import Navbar from "../Navbar";
 
+export const metadata = {
+  title: "Contact",
+  description: "Questions about an order or sizing? Email contact.nowhen@gmail.com — we reply within 24–48 hours.",
+  alternates: { canonical: "/contact" },
+};
+
 export default function Contact() {
   return (
     <>
