@@ -1,5 +1,11 @@
 import Navbar from "../Navbar";
 
+export const metadata = {
+  title: "Terms & Conditions",
+  description: "Terms and conditions for shopping at Nowhen.",
+  alternates: { canonical: "/terms" },
+};
+
 export default function Terms() {
   return (
     <>

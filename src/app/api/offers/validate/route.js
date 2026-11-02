@@ -26,6 +26,7 @@ export async function POST(req) {
       code: offer.code,
       discount_percent: offer.discount_percent,
       discount_amount: offer.discount_amount,
+      min_items: offer.min_items || null,
     });
   } catch (error) {
     console.error(error);

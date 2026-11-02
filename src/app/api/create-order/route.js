@@ -2,13 +2,21 @@ import { neon } from "@neondatabase/serverless";
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
 import { getUserFromToken, SESSION_COOKIE } from "@/lib/auth";
+import { offerDiscount, shippingFee } from "@/lib/pricing";
 
 const sql = neon(process.env.DATABASE_URL);
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Created on first use, not at import: Next.js loads every route during the
+// build, and builds without payment keys (e.g. Vercel previews) must not crash.
+let razorpay;
+function getRazorpay() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return null;
+  razorpay ??= new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+  return razorpay;
+}
 
 export async function POST(req) {
   try {
@@ -66,6 +74,8 @@ export async function POST(req) {
       });
     }
 
+    const itemCount = lineItems.reduce((sum, item) => sum + item.qty, 0);
+
     if (amount <= 0) {
       return NextResponse.json({ error: "Invalid order amount" }, { status: 400 });
     }
@@ -82,14 +92,18 @@ export async function POST(req) {
       `;
       if (offerResult.length > 0) {
         const offerRow = offerResult[0];
-        discount = offerRow.discount_percent
-          ? Math.round((amount * offerRow.discount_percent) / 100)
-          : Math.min(offerRow.discount_amount, amount);
-        appliedCode = offerRow.code;
+        discount = offerDiscount(offerRow, amount, itemCount);
+        appliedCode = discount > 0 ? offerRow.code : null;
       }
     }
 
-    const finalAmount = Math.max(amount - discount, 0);
+    // The discount applies to the tees only; shipping is added on top.
+    const finalAmount = Math.max(amount - discount, 0) + shippingFee(itemCount);
+
+    const razorpay = getRazorpay();
+    if (!razorpay) {
+      return NextResponse.json({ error: "Payments aren't set up on this deployment" }, { status: 503 });
+    }
 
     const razorpayOrder = await razorpay.orders.create({
       amount: finalAmount * 100, // paise

@@ -1,5 +1,11 @@
 import Navbar from "../Navbar";
 
+export const metadata = {
+  title: "About",
+  description: "Nowhen started with three friends and one house — clothes made to outlast trends, not chase them.",
+  alternates: { canonical: "/about" },
+};
+
 export default function About() {
   return (
     <>

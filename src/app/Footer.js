@@ -55,22 +55,25 @@ export default function Footer() {
           </div>
         </div>
 
-        <div>
+        <div className="col-span-2 md:col-span-1">
           <h3 className="text-xs tracking-[0.2em] uppercase mb-4 opacity-90">Signup</h3>
           <p className="text-sm opacity-70 mb-4">
-            Subscribe for updates on new drops.
+            Get first access to new drops and members-only offers.
           </p>
           <form onSubmit={handleSubscribe} className="flex">
             <input
               type="email"
               placeholder="Email"
+              aria-label="Email address"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm outline-none"
+              className="flex-1 min-w-0 px-3 py-2 text-sm outline-none"
               style={{ backgroundColor: "#1A1A1A", border: "1px solid #333", color: "#F5F2EC" }}
             />
             <button
               type="submit"
+              aria-label="Subscribe"
               className="px-4 text-sm"
               style={{ backgroundColor: "#8B1E24", color: "#F5F2EC" }}
             >

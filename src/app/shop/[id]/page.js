@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -7,6 +7,13 @@ import { Heart, Star } from "lucide-react";
 import Navbar from "../../Navbar";
 import { useCart } from "../../CartContext";
 import { useWishlist } from "../../WishlistContext";
+import { PriceTag } from "@/lib/pricing";
+
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+function sortSizes(sizes) {
+  const rank = (s) => (SIZE_ORDER.indexOf(s) === -1 ? 99 : SIZE_ORDER.indexOf(s));
+  return [...sizes].sort((a, b) => rank(a) - rank(b));
+}
 
 function StarRow({ rating, size = 14, interactive = false, onRate }) {
   return (
@@ -207,9 +214,7 @@ function RelatedProducts({ currentId }) {
                 />
               </div>
               <p className="text-xs tracking-wide text-center opacity-80">{product.name}</p>
-              <p className="text-sm font-semibold mt-1" style={{ color: "#8B1E24" }}>
-                ₹{product.price}
-              </p>
+              <PriceTag product={product} className="text-sm font-semibold mt-1" />
             </Link>
           );
         })}
@@ -245,7 +250,9 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState(null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [inCart, setInCart] = useState(false);
   const [error, setError] = useState("");
+  const sizePickerRef = useRef(null);
   const [zoomStyle, setZoomStyle] = useState({});
   const [zooming, setZooming] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
@@ -292,11 +299,13 @@ export default function ProductDetail() {
   function handleAddToCart() {
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       setError("Please select a size.");
+      sizePickerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setError("");
     addToCart(product, selectedSize, qty);
     setAdded(true);
+    setInCart(true);
     setTimeout(() => setAdded(false), 1500);
   }
 
@@ -346,10 +355,10 @@ export default function ProductDetail() {
       <main className="min-h-screen px-6 md:px-10 pt-28 pb-24 md:pb-20" style={{ backgroundColor: "#000", color: "#F5F2EC" }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Left — image gallery */}
-          <div className="flex gap-4">
-            {/* Thumbnails */}
+          <div className="flex flex-col-reverse md:flex-row gap-3 md:gap-4">
+            {/* Thumbnails — a row under the image on mobile, a column beside it on desktop */}
             {images.length > 1 && (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-row md:flex-col gap-3 overflow-x-auto scrollbar-hide">
                 {images.map((img, i) => (
                   <button
                     key={i}
@@ -411,9 +420,7 @@ export default function ProductDetail() {
                 />
               </button>
             </div>
-            <p className="text-2xl font-semibold mb-2" style={{ color: "#8B1E24" }}>
-              ₹{product.price}
-            </p>
+            <PriceTag product={product} className="text-2xl font-semibold mb-2" />
             {outOfStock && (
               <p className="text-xs tracking-[0.15em] uppercase mb-4" style={{ color: "#8B1E24" }}>
                 Out of Stock
@@ -421,10 +428,12 @@ export default function ProductDetail() {
             )}
 
             {hasSizes && (
-              <div className="mb-2">
-                <p className="text-xs tracking-[0.15em] uppercase opacity-70 mb-3">Size</p>
+              <div className="mb-2 scroll-mt-32" ref={sizePickerRef}>
+                <p className="text-xs tracking-[0.15em] uppercase opacity-70 mb-3">
+                  Size <span className="normal-case tracking-normal opacity-70">· oversized fit</span>
+                </p>
                 <div className="flex gap-2 flex-wrap">
-                  {product.sizes.map((size) => {
+                  {sortSizes(product.sizes).map((size) => {
                     const soldOut = stockForSize(size) === 0;
                     return (
                       <button
@@ -502,6 +511,22 @@ export default function ProductDetail() {
               {outOfStock ? "Out of Stock" : added ? "✓ Added to Cart" : "Add to Cart"}
             </button>
 
+            {inCart && (
+              <Link
+                href="/cart"
+                className="hidden md:block text-center py-4 mb-4 text-xs tracking-[0.25em] uppercase font-semibold transition-colors hover:bg-[#F5F2EC] hover:text-black"
+                style={{ border: "1px solid #F5F2EC" }}
+              >
+                Go to Checkout →
+              </Link>
+            )}
+
+            <ul className="text-xs opacity-60 flex flex-col gap-1.5 mt-2 md:mt-0">
+              <li>✦ Free shipping on 2+ tees (₹49 for one) · delivered across India in 5–7 business days</li>
+              <li>✦ Easy exchange within 10 days of delivery</li>
+              <li>✦ Secure checkout — UPI, cards and net banking</li>
+            </ul>
+
             <div className="mt-2 md:mt-6 pt-6" style={{ borderTop: "1px solid #222" }}>
               <p className="text-xs tracking-[0.15em] uppercase opacity-50 mb-2">Details</p>
               <p className="text-sm opacity-80 leading-relaxed">
@@ -523,6 +548,15 @@ export default function ProductDetail() {
         <span className="text-sm font-semibold flex-shrink-0" style={{ color: "#8B1E24" }}>
           ₹{product.price}
         </span>
+        {inCart && (
+          <Link
+            href="/cart"
+            className="flex-1 py-3 text-center text-xs tracking-[0.2em] uppercase font-semibold"
+            style={{ border: "1px solid #F5F2EC", color: "#F5F2EC" }}
+          >
+            Checkout
+          </Link>
+        )}
         <button
           onClick={handleAddToCart}
           disabled={outOfStock}
@@ -533,7 +567,13 @@ export default function ProductDetail() {
             border: added ? "1px solid #8B1E24" : "1px solid transparent",
           }}
         >
-          {outOfStock ? "Out of Stock" : added ? "✓ Added" : "Add to Cart"}
+          {outOfStock
+            ? "Out of Stock"
+            : added
+            ? "✓ Added"
+            : hasSizes && !selectedSize
+            ? "Select a Size"
+            : "Add to Cart"}
         </button>
       </div>
     </>

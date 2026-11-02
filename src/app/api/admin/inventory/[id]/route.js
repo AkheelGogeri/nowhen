@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -46,6 +47,7 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
+    revalidatePath("/", "layout");
     return NextResponse.json(result[0]);
   } catch (error) {
     console.error(error);

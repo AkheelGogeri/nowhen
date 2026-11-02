@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -15,7 +16,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { name, price, sizes, images, description, in_stock, category, featured } = await req.json();
+    const { name, price, compare_at_price, sizes, images, description, in_stock, category, featured } = await req.json();
 
     if (!name || !price || !images || images.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -26,11 +27,12 @@ export async function POST(req) {
     const nextOrder = maxOrder[0].max + 1;
 
     const result = await sql`
-      INSERT INTO products (name, price, sizes, images, image, sort_order, description, in_stock, category, featured)
-      VALUES (${name}, ${price}, ${sizes || []}, ${images}, ${images[0]}, ${nextOrder}, ${description || null}, ${in_stock ?? true}, ${category || null}, ${featured ?? false})
+      INSERT INTO products (name, price, compare_at_price, sizes, images, image, sort_order, description, in_stock, category, featured)
+      VALUES (${name}, ${price}, ${compare_at_price || null}, ${sizes || []}, ${images}, ${images[0]}, ${nextOrder}, ${description || null}, ${in_stock ?? true}, ${category || null}, ${featured ?? false})
       RETURNING *
     `;
 
+    revalidatePath("/", "layout");
     return NextResponse.json(result[0]);
   } catch (error) {
     console.error(error);

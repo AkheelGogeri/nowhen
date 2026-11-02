@@ -145,7 +145,7 @@ export default function Navbar() {
         </Link>
 
         {/* Right — icons */}
-        <div className="flex items-center justify-end gap-6 flex-1">
+        <div className="flex items-center justify-end gap-5 md:gap-6 flex-1">
           <button
             aria-label="Search"
             onClick={() => setSearchOpen((prev) => !prev)}
@@ -153,10 +153,10 @@ export default function Navbar() {
           >
             <Search size={24} />
           </button>
-          <Link href="/account" aria-label="Account" className="hover:opacity-70 transition-opacity">
+          <Link href="/account" aria-label="Account" className="hidden md:block hover:opacity-70 transition-opacity">
             <User size={24} />
           </Link>
-          <Link href="/wishlist" aria-label="Wishlist" className="relative hover:opacity-70 transition-opacity">
+          <Link href="/wishlist" aria-label="Wishlist" className="relative hidden md:block hover:opacity-70 transition-opacity">
             <Heart size={24} />
             {wishlistCount > 0 && (
               <span
@@ -220,7 +220,7 @@ export default function Navbar() {
 
       {/* Slide-in side drawer */}
       <div
-        className="fixed top-0 left-0 h-full w-36 z-50 md:hidden transition-transform duration-300 ease-in-out flex flex-col"
+        className="fixed top-0 left-0 h-full w-60 max-w-[80vw] z-50 md:hidden transition-transform duration-300 ease-in-out flex flex-col"
         style={{
           backgroundColor: "#000000",
           color: "#F5F2EC",
@@ -251,6 +251,13 @@ export default function Navbar() {
           </Link>
           <Link href="/contact" className="text-sm tracking-[0.25em] uppercase" onClick={() => setMenuOpen(false)}>
             Contact
+          </Link>
+          <div className="h-px" style={{ backgroundColor: "#222" }} />
+          <Link href="/wishlist" className="flex items-center gap-3 text-sm tracking-[0.25em] uppercase" onClick={() => setMenuOpen(false)}>
+            <Heart size={18} /> Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ""}
+          </Link>
+          <Link href="/account" className="flex items-center gap-3 text-sm tracking-[0.25em] uppercase" onClick={() => setMenuOpen(false)}>
+            <User size={18} /> Account
           </Link>
         </div>
       </div>
