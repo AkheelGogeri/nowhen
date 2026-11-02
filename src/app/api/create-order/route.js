@@ -2,7 +2,7 @@ import { neon } from "@neondatabase/serverless";
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
 import { getUserFromToken, SESSION_COOKIE } from "@/lib/auth";
-import { offerDiscount } from "@/lib/pricing";
+import { offerDiscount, shippingFee } from "@/lib/pricing";
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -74,6 +74,8 @@ export async function POST(req) {
       });
     }
 
+    const itemCount = lineItems.reduce((sum, item) => sum + item.qty, 0);
+
     if (amount <= 0) {
       return NextResponse.json({ error: "Invalid order amount" }, { status: 400 });
     }
@@ -90,13 +92,13 @@ export async function POST(req) {
       `;
       if (offerResult.length > 0) {
         const offerRow = offerResult[0];
-        const itemCount = lineItems.reduce((sum, item) => sum + item.qty, 0);
         discount = offerDiscount(offerRow, amount, itemCount);
         appliedCode = discount > 0 ? offerRow.code : null;
       }
     }
 
-    const finalAmount = Math.max(amount - discount, 0);
+    // The discount applies to the tees only; shipping is added on top.
+    const finalAmount = Math.max(amount - discount, 0) + shippingFee(itemCount);
 
     const razorpay = getRazorpay();
     if (!razorpay) {

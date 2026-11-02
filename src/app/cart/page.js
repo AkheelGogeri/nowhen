@@ -4,7 +4,7 @@ import Link from "next/link";
 import Script from "next/script";
 import Navbar from "../Navbar";
 import { useCart } from "../CartContext";
-import { offerDiscount } from "@/lib/pricing";
+import { offerDiscount, shippingFee, FREE_SHIPPING_MIN_ITEMS } from "@/lib/pricing";
 
 export default function Cart() {
   const { cart, removeFromCart, updateQty, clearCart } = useCart();
@@ -37,7 +37,8 @@ export default function Cart() {
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const discount = offerDiscount(offer, subtotal, itemCount);
   const itemsShort = offer?.min_items ? Math.max(offer.min_items - itemCount, 0) : 0;
-  const total = Math.max(subtotal - discount, 0);
+  const shipping = shippingFee(itemCount);
+  const total = Math.max(subtotal - discount, 0) + shipping;
 
   function handleChange(field, value) {
     setCustomer((prev) => ({ ...prev, [field]: value }));
@@ -309,6 +310,15 @@ export default function Cart() {
                     <span>Discount</span>
                     <span>−₹{discount}</span>
                   </div>
+                )}
+                <div className="flex justify-between opacity-70">
+                  <span>Shipping</span>
+                  <span>{shipping > 0 ? `₹${shipping}` : "Free"}</span>
+                </div>
+                {shipping > 0 && (
+                  <p className="text-xs" style={{ color: "#8B7A1E" }}>
+                    Add {FREE_SHIPPING_MIN_ITEMS - itemCount} more tee for free shipping.
+                  </p>
                 )}
                 <div className="flex justify-between text-lg mt-2">
                   <span>Total</span>

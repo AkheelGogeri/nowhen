@@ -522,7 +522,7 @@ export default function ProductDetail() {
             )}
 
             <ul className="text-xs opacity-60 flex flex-col gap-1.5 mt-2 md:mt-0">
-              <li>✦ Delivered across India in 5–7 business days</li>
+              <li>✦ Free shipping on 2+ tees (₹49 for one) · delivered across India in 5–7 business days</li>
               <li>✦ Easy exchange within 10 days of delivery</li>
               <li>✦ Secure checkout — UPI, cards and net banking</li>
             </ul>

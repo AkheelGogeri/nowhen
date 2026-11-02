@@ -8,6 +8,14 @@ export function savingsPercent(product) {
   return Math.round(((was - now) / was) * 100);
 }
 
+// Shipping: a flat fee for a single tee, free from FREE_SHIPPING_MIN_ITEMS up.
+export const SHIPPING_FEE = 49;
+export const FREE_SHIPPING_MIN_ITEMS = 2;
+
+export function shippingFee(itemCount) {
+  return itemCount > 0 && itemCount < FREE_SHIPPING_MIN_ITEMS ? SHIPPING_FEE : 0;
+}
+
 // Discount for a validated offer against a cart. Bundle offers (min_items)
 // give nothing until the cart has enough items. Used by the cart UI and the
 // create-order API so the price shown is always the price charged.

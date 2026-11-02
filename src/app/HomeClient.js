@@ -8,7 +8,7 @@ import FeaturedCarousel from "./FeaturedCarousel";
 import { PriceTag } from "@/lib/pricing";
 
 const TRUST_BADGES = [
-  { Icon: Truck, label: "Fast Shipping", desc: "Dispatched within 2–3 days" },
+  { Icon: Truck, label: "Free Shipping on 2+", desc: "Dispatched within 1–2 business days" },
   { Icon: ShieldCheck, label: "Secure Payment", desc: "Powered by Razorpay" },
   { Icon: RotateCcw, label: "Easy Returns", desc: "Hassle-free exchanges" },
 ];

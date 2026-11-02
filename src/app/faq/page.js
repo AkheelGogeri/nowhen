@@ -8,6 +8,10 @@ export const metadata = {
 
 const faqs = [
   {
+    q: "How much is shipping?",
+    a: "Shipping is free on orders of 2 or more tees. For a single tee it's a flat ₹49 anywhere in India.",
+  },
+  {
     q: "How long does shipping take?",
     a: "Orders are typically processed within 1-2 business days and delivered within 5-7 business days across India.",
   },
