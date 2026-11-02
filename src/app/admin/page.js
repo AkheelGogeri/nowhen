@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { neon } from "@neondatabase/serverless";
 import { Package, Tag, ShoppingBag, Image as ImageIcon, Mail, Star, Boxes, Megaphone } from "lucide-react";
+import LogoutButton from "./LogoutButton";
 
 // Without this Next.js prerenders the dashboard once at build time and serves that
 // frozen copy forever — which is why it kept saying "No orders yet".
@@ -77,12 +78,15 @@ export default async function AdminDashboard() {
 
   return (
     <main className="min-h-screen px-4 sm:px-8 py-12" style={{ backgroundColor: "#0D0D0D", color: "#F5F2EC" }}>
-      <h1
-        className="text-2xl tracking-[0.2em] uppercase mb-8"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        Admin Dashboard
-      </h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1
+          className="text-2xl tracking-[0.2em] uppercase"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Admin Dashboard
+        </h1>
+        <LogoutButton />
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

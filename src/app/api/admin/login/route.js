@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
+import { ADMIN_COOKIE, ADMIN_SESSION_SECONDS, adminCookieOptions, createAdminToken, safeEqual } from "@/lib/adminSession";
 
 export async function POST(req) {
   const { password } = await req.json();
 
-  if (password === process.env.ADMIN_PASSWORD) {
+  if (process.env.ADMIN_PASSWORD && safeEqual(password, process.env.ADMIN_PASSWORD)) {
     const response = NextResponse.json({ success: true });
-    response.cookies.set("nowhen_admin", process.env.ADMIN_PASSWORD, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
+    // The cookie holds a signed, expiring token — never the password itself.
+    response.cookies.set(ADMIN_COOKIE, await createAdminToken(), {
+      ...adminCookieOptions,
+      maxAge: ADMIN_SESSION_SECONDS,
     });
     return response;
   }
