@@ -6,10 +6,17 @@ import { offerDiscount } from "@/lib/pricing";
 
 const sql = neon(process.env.DATABASE_URL);
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Created on first use, not at import: Next.js loads every route during the
+// build, and builds without payment keys (e.g. Vercel previews) must not crash.
+let razorpay;
+function getRazorpay() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return null;
+  razorpay ??= new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+  return razorpay;
+}
 
 export async function POST(req) {
   try {
@@ -90,6 +97,11 @@ export async function POST(req) {
     }
 
     const finalAmount = Math.max(amount - discount, 0);
+
+    const razorpay = getRazorpay();
+    if (!razorpay) {
+      return NextResponse.json({ error: "Payments aren't set up on this deployment" }, { status: 503 });
+    }
 
     const razorpayOrder = await razorpay.orders.create({
       amount: finalAmount * 100, // paise
